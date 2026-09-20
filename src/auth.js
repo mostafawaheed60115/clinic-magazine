@@ -281,7 +281,6 @@ export async function signIn(usernameInput, password) {
     emit();
     return snapshot();
   }
-  const loginEpoch = ++authEpoch;
   const { data, error } = await getSupabase().auth.signInWithPassword({
     email: emailFor(username),
     password,
@@ -290,8 +289,6 @@ export async function signIn(usernameInput, password) {
   state = { ...state, session: data.session, user: data.user };
   try {
     if (data.user) await loadSupabaseProfile(data.user);
-    if (loginEpoch !== authEpoch)
-      throw authError("Sign-in was superseded", "stale_auth");
   } catch (profileError) {
     await getSupabase()
       .auth.signOut()
