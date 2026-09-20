@@ -1,17 +1,18 @@
 import { isDemoMode } from "./auth.js";
 import * as demoStore from "./demo-store.js";
-import { readCatalog, saveCatalogItem, deleteCatalogItem } from "./cloud.js";
+import {
+  cloudConfigured,
+  readCatalog,
+  saveCatalogItem,
+  deleteCatalogItem,
+} from "./cloud.js";
 
 export const collections = demoStore.collections;
 export const channel = demoStore.channel;
 export { isDemoMode };
 export const openStore = demoStore.openStore;
 
-const hasCloudConfig = () =>
-  Boolean(
-    import.meta.env?.VITE_SUPABASE_URL &&
-    import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY,
-  );
+const hasCloudConfig = () => cloudConfigured;
 const unconfigured = () => {
   const error = new Error("Catalog storage is not configured");
   error.code = "unconfigured";
