@@ -1,0 +1,187 @@
+@import "@fontsource-variable/cairo";
+@import "@fontsource-variable/manrope";
+:root {
+  --background: #fcf0fc;
+  --primary: #fac3f6;
+  --ink: #2b262b;
+  --accent: #fc9af6;
+  --blush: #ffd5d9;
+  --rose: #cc5a79;
+  --muted: #675363;
+  --paper: #fffaff;
+  --line: #e5d8e3;
+  --danger: #982544;
+  --scroll-thumb: #aa839f;
+  --scroll-track: #fcf0fc;
+  --scroll-hover: #675363;
+  --scroll-active: #2b262b;
+  --radius: 16px;
+  --danger-hover: #73203b;
+  --primary-hover: #51414f;
+  --pink-text: #574150;
+  --inactive: #bba4b7;
+  --footer-line: #5c4e5b;
+  --white: #ffffff;
+  --cover-shadow: #aa739012;
+  --toast-shadow: #2b262b26;
+  --dialog-shadow: #2b262b33;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: "Manrope Variable", sans-serif;
+  color: var(--ink);
+  background: var(--background);
+  font-synthesis: none;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+html[lang="ar"] {
+  font-family: "Cairo Variable", sans-serif;
+}
+* {
+  box-sizing: border-box;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+  scrollbar-width: thin;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-hover);
+}
+*::-webkit-scrollbar-thumb:active {
+  background: var(--scroll-active);
+}
+body {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.65;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+a {
+  touch-action: manipulation;
+}
+button,
+a,
+select,
+input[type="file"] {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+  text-underline-offset: 5px;
+}
+button {
+  color: inherit;
+}
+button:active,
+a:active {
+  opacity: 0.8;
+}
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+h1 {
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+html[lang="ar"] h1 {
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+p {
+  max-width: 70ch;
+}
+input,
+textarea {
+  caret-color: var(--rose);
+}
+textarea {
+  resize: none;
+  min-height: 100px;
+}
+::selection {
+  background: var(--primary);
+  color: var(--ink);
+}
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 5px;
+}
+input::placeholder {
+  color: var(--muted);
+}
+[hidden] {
+  display: none !important;
+}
+button {
+  border: 0;
+  background: none;
+}
+input[type="search"]::-webkit-search-cancel-button {
+  display: none;
+}
+h1[tabindex] {
+  outline: none;
+}
+main {
+  min-height: 60vh;
+}
+dialog::backdrop {
+  background: rgb(43 38 43 / 0.4);
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@media (forced-colors: active) {
+  * {
+    scrollbar-color: auto;
+  }
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}

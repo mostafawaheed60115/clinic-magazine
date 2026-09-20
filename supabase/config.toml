@@ -1,0 +1,6 @@
+# Edge functions require a verified Supabase JWT before the handler runs.
+[functions.clinic-admin-users]
+verify_jwt = true
+
+[functions.clinic-upload]
+verify_jwt = true

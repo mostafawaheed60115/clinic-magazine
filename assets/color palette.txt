@@ -1,0 +1,6 @@
+#fc9af6
+#fac3f6 main
+#fcf0fc main 2
+#ffd5d9
+#2b262b main 3
+#cc5a79

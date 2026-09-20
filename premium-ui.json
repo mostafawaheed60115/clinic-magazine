@@ -1,0 +1,26 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["src"],
+  "locale": "ar-EG",
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": [
+    "Select/Listbox",
+    "Form",
+    "Scrollbar",
+    "Toast",
+    "CRUD"
+  ],
+  "ownership": {
+    "Select/Listbox": "native"
+  },
+  "requiredCommands": ["e2e", "build", "format"],
+  "commands": {
+    "e2e": "npm test",
+    "build": "npm run build",
+    "format": "npm run format:check"
+  },
+  "evidence": {
+    "crudFullFlow": "tests/magazine.spec.js",
+    "failurePaths": "tests/magazine.spec.js"
+  }
+}
