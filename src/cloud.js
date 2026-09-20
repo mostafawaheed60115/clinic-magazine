@@ -1,8 +1,17 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = String(import.meta.env?.VITE_SUPABASE_URL || "").trim();
+// These are browser-safe project settings. Environment variables still win so
+// another deployment can point the magazine at a different Supabase project.
+// Never add a service-role key here: only the publishable key belongs in the
+// client bundle.
+const DEFAULT_SUPABASE_URL = "https://twllyczdtmitsupfvjgx.supabase.co";
+const DEFAULT_PUBLISHABLE_KEY =
+  "sb_publishable_z4d37t9sfGZyrXRquZCXDA_5UfPVqZ5";
+const supabaseUrl = String(
+  import.meta.env?.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL,
+).trim();
 const publishableKey = String(
-  import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || "",
+  import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || DEFAULT_PUBLISHABLE_KEY,
 ).trim();
 
 export const cloudConfigured = Boolean(supabaseUrl && publishableKey);

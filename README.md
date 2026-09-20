@@ -13,7 +13,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-The selected Supabase project is `online catalog` (`twllyczdtmitsupfvjgx`). Its name remains unchanged at the user's request. Frontend configuration uses a public publishable key; service-role keys must never use a `VITE_` variable or enter the browser bundle.
+The selected Supabase project is `online catalog` (`twllyczdtmitsupfvjgx`). Its name remains unchanged at the user's request. Frontend configuration uses a public publishable key; service-role keys must never use a `VITE_` variable or enter the browser bundle. The selected project URL and publishable key are also safe browser defaults in `src/cloud.js`, so a Vercel build remains connected when environment variables were not added; `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` override those defaults for another project.
 
 For a separate local interface preview, leave Supabase variables empty and explicitly set `VITE_DEMO_MODE=true`. Demo accounts and sample catalog data are only for development; see the sign-in screen for preview credentials. Real authentication failures never fall back to demo mode. Never use a real password in preview mode.
 

@@ -3,10 +3,12 @@ import { cloudConfigured, getSupabase, invokeAdmin } from "./cloud.js";
 export const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{2,39}$/;
 const demoEnabled =
   String(import.meta.env?.VITE_DEMO_MODE || "").toLowerCase() === "true";
-const mode = cloudConfigured
-  ? "supabase"
-  : demoEnabled
-    ? "demo"
+// An explicit local demo flag always wins, even when the production project
+// defaults are available in the browser bundle.
+const mode = demoEnabled
+  ? "demo"
+  : cloudConfigured
+    ? "supabase"
     : "unconfigured";
 const configured = mode !== "unconfigured";
 const demoSessionKey = "clinic-demo-session";
