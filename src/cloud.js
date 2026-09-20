@@ -17,6 +17,7 @@ export const supabase = cloudConfigured
   : null;
 
 export const getSupabase = () => supabase;
+export const IMAGE_BUCKET = "clinic-images";
 
 const COLLECTIONS = ["companies", "products", "offers"];
 const PAGE_SIZE = 500;
@@ -223,11 +224,6 @@ export async function getCurrentSession() {
   const { data, error } = await client.auth.getSession();
   if (error) throw error;
   return data.session;
-}
-
-export function imageUploadUrl() {
-  if (!cloudConfigured) return "";
-  return `${supabaseUrl.replace(/\/$/, "")}/functions/v1/clinic-upload`;
 }
 
 export { fromDatabase, toDatabase };

@@ -1,4 +1,8 @@
-import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import {
+  createClient,
+  type SupabaseClient,
+  type User,
+} from "@supabase/supabase-js";
 
 type AdminContext = {
   user: User;
@@ -21,19 +25,25 @@ export function serviceClient(): SupabaseClient {
   );
 }
 
-export async function requireActiveAdmin(request: Request): Promise<AdminContext> {
+export async function requireActiveAdmin(
+  request: Request,
+): Promise<AdminContext> {
   const authorization = request.headers.get("authorization") ?? "";
   const match = authorization.match(/^Bearer\s+(.+)$/i);
   if (!match) throw new Error("AUTH_REQUIRED");
 
   const token = match[1];
   const url = envOrThrow("SUPABASE_URL");
-  const publishableKey = envOrThrow("SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY");
+  const publishableKey = envOrThrow(
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_PUBLISHABLE_KEY",
+  );
   const userClient = createClient(url, publishableKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: userData, error: userError } = await userClient.auth.getUser(token);
+  const { data: userData, error: userError } =
+    await userClient.auth.getUser(token);
   if (userError || !userData.user) throw new Error("AUTH_INVALID");
 
   const adminClient = serviceClient();

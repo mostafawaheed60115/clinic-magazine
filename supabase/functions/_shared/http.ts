@@ -6,7 +6,8 @@ const DEVELOPMENT_ORIGINS = new Set([
 ]);
 
 export function allowedOrigins(): Set<string> {
-  const configured = Deno.env.get("ALLOWED_ORIGINS")
+  const configured = Deno.env
+    .get("ALLOWED_ORIGINS")
     ?.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -20,7 +21,7 @@ export function corsHeaders(request: Request): Headers {
   const headers = new Headers({
     "Access-Control-Allow-Headers": "authorization, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Vary": "Origin",
+    Vary: "Origin",
   });
   const origin = request.headers.get("origin");
   if (origin && allowedOrigins().has(origin)) {

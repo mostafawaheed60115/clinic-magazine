@@ -44,6 +44,7 @@ const ar = {
   offersEmpty: "لا توجد عروض حاليًا",
   notFound: "الصفحة غير موجودة",
   notFoundText: "ربما تغيّر هذا الرابط. عد لاستكشاف العلامات التجارية.",
+  unknownBrand: "العرض غير مرتبط بعلامة تجارية بعد",
   pack: "وحدة / عبوة",
   discount: "خصم",
   finalPrice: "السعر النهائي",
@@ -72,6 +73,12 @@ const ar = {
   loginText: "سجّل الدخول لاستكشاف أحدث العروض والمنتجات.",
   loginEyebrow: "مجلة الجمال التجارية",
   loginVisualAlt: "حملة Clinic للعناية بالبشرة",
+  loginVisualMeta: "وصول الشركاء · كتالوج أسيوط",
+  loginLocation: "أسيوط، مصر",
+  loginSecure: "دخول الشركاء",
+  loginPasswordHint: "محمية وآمنة",
+  loginFootnote: "هل تحتاج إلى حساب؟ تواصل مع مسؤول Clinic.",
+  loginSecureMark: "وصول موثوق",
   demoWarning:
     "هذه تجربة محلية على جهازك. تسجيل الدخول التوضيحي لا يوفر حماية حقيقية.",
   demoCredentials: "للتجربة: اسم المستخدم demo وكلمة المرور clinic",
@@ -127,8 +134,17 @@ const ar = {
   invalidNumber: "أدخل رقمًا صالحًا ضمن الحدود الموضحة.",
   invalidUrl: "استخدم رابطًا يبدأ بـ https://.",
   invalidImage: "اختر صورة JPG أو PNG أو WebP صالحة، لا تتجاوز 5 ميجابايت.",
+  uploadNotConfigured:
+    "تخزين الصور غير مُعدّ بعد. أنشئ حاوية clinic-images في Supabase ثم أعد المحاولة.",
+  uploadFailed:
+    "تعذّر رفع الصورة إلى Supabase. تحقق من الصلاحيات والاتصال ثم حاول مجددًا.",
+  uploadTooLarge: "الصورة الناتجة أكبر من 5 ميجابايت. اختر صورة أصغر.",
+  imageProcessingError: "تعذّر تجهيز الصورة. اختر ملفًا آخر وحاول مجددًا.",
+  uploadTimeout:
+    "استغرق رفع الصورة وقتًا طويلًا. تحقق من الاتصال وحاول مجددًا.",
   actions: "الإجراءات",
   localOnly: "التغييرات محفوظة في هذا المتصفح فقط.",
+  cloudManaged: "المحتوى محفوظ في حساب Clinic.",
   manageText: "حدّث محتوى المجلة من مكان واحد.",
   total: "الإجمالي",
   chooseBrand: "اختر علامة تجارية",
@@ -194,6 +210,7 @@ const en = {
   offersEmpty: "No offers at the moment",
   notFound: "Page not found",
   notFoundText: "This link may have changed. Head back to explore the brands.",
+  unknownBrand: "This offer is not linked to a brand yet",
   pack: "units / pack",
   discount: "off",
   finalPrice: "Final price",
@@ -223,6 +240,12 @@ const en = {
   loginText: "Sign in to explore the latest offers and products.",
   loginEyebrow: "The beauty trade magazine",
   loginVisualAlt: "Clinic skincare campaign",
+  loginVisualMeta: "Partner access · Asyut catalog",
+  loginLocation: "Asyut, Egypt",
+  loginSecure: "Partner sign-in",
+  loginPasswordHint: "Protected access",
+  loginFootnote: "Need an account? Contact your Clinic administrator.",
+  loginSecureMark: "Trusted access",
   demoWarning:
     "This is a local demo on your device. Demo sign-in provides no real security.",
   demoCredentials: "Try username demo and password clinic",
@@ -280,8 +303,19 @@ const en = {
   invalidNumber: "Enter a valid number within the shown limits.",
   invalidUrl: "Use a URL starting with https://.",
   invalidImage: "Choose a valid JPG, PNG or WebP image, no larger than 5 MB.",
+  uploadNotConfigured:
+    "Image storage is not configured yet. Create the clinic-images bucket in Supabase and try again.",
+  uploadFailed:
+    "The image could not be uploaded to Supabase. Check permissions and the connection, then try again.",
+  uploadTooLarge:
+    "The converted image is larger than 5 MB. Choose a smaller image.",
+  imageProcessingError:
+    "The image could not be prepared. Choose another file and try again.",
+  uploadTimeout:
+    "The image upload took too long. Check the connection and try again.",
   actions: "Actions",
   localOnly: "Changes are saved in this browser only.",
+  cloudManaged: "Content is saved to the Clinic account.",
   manageText: "Keep your magazine up to date, all in one place.",
   total: "Total",
   chooseBrand: "Choose a brand",

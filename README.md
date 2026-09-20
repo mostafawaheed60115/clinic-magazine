@@ -13,7 +13,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-The selected Supabase project is `online catalog` (`twllyczdtmitsupfvjgx`). Its name remains unchanged at the user's request. Frontend configuration uses a public publishable key; service-role keys and R2 credentials must never use a `VITE_` variable or enter the browser bundle.
+The selected Supabase project is `online catalog` (`twllyczdtmitsupfvjgx`). Its name remains unchanged at the user's request. Frontend configuration uses a public publishable key; service-role keys must never use a `VITE_` variable or enter the browser bundle.
 
 For a separate local interface preview, leave Supabase variables empty and explicitly set `VITE_DEMO_MODE=true`. Demo accounts and sample catalog data are only for development; see the sign-in screen for preview credentials. Real authentication failures never fall back to demo mode. Never use a real password in preview mode.
 
@@ -22,7 +22,7 @@ npm run build
 npm run preview
 ```
 
-`dist` contains the static site. Serve it over HTTP; ES modules do not work by double-clicking `index.html`. Hash routes work on ordinary static hosting. Direct `/admin` access requires the host to rewrite that path to `index.html`; `/#/admin` works without a rewrite. No public frontend deployment is included.
+`dist` contains the static site. Serve it over HTTP; ES modules do not work by double-clicking `index.html`. Hash routes work on ordinary static hosting. The build includes compiled `/admin.html` and `/admin/index.html` entry points, so direct `/admin` access works on hosts that do not apply SPA rewrites. No public frontend deployment is included.
 
 ## Access and pages
 
@@ -40,9 +40,11 @@ Search and pagination are kept in route parameters. The catalog supports Arabic 
 
 Companies support phone, an optional parent company, and `logo_url`. Products use `company_id`, numeric `size_value` with `size_unit` (`ml` or `g`), optional units-per-pack `qty`, optional percentage `discount`, authoritative `final_price`, and optional `product_url`. Offers also use `company_id`. Revision checks reject stale catalog edits.
 
-Admin image selection creates a preview and converts raster images to WebP in the browser. Saving sends the WebP to an authenticated Edge Function, which verifies active admin membership and uploads to Cloudflare R2. The resulting URL is saved in Supabase. R2 credentials stay in Edge Function secrets. Uploads cannot complete until R2 is configured; a failure keeps the editor available for correction.
+Admin image selection creates a preview and converts raster images to WebP in the browser. Saving uploads the WebP directly to the Supabase Storage `clinic-images` bucket through the authenticated Supabase client; Storage RLS allows writes only for active administrators. The resulting public object URL is saved in Supabase. Uploads cannot complete until the bucket migration is applied; a failure keeps the editor available for correction.
 
-See [backend setup](supabase/README.md) for migrations, account provisioning, Edge Functions, R2 secrets and allowed origins. The original supplied palette and logo assets are preserved. Refined SVGs are in `public/assets`. Preview brands, products, prices and offer artwork are explicitly illustrative and are not automatically inserted into the live database.
+See [backend setup](supabase/README.md) for migrations, account provisioning, Storage policies and Edge Functions used for user management. The original supplied palette and logo assets are preserved. Refined SVGs and the supplied PNG logo are in `public/assets`. Preview brands, products, prices and offer artwork are explicitly illustrative and are not automatically inserted into the live database.
+
+See [UI-UX-AUDIT.md](UI-UX-AUDIT.md) for the sizing, spacing, component, responsive, and accessibility review with captured desktop and mobile evidence.
 
 ## Code and checks
 

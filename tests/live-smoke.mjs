@@ -103,35 +103,26 @@ async function expectViewerReadDenied(viewer) {
   );
 }
 
-async function expectUploadUnavailable(admin) {
-  // A minimal complete RIFF/WEBP container passes the function's structural
-  // validation and reaches the R2 configuration check without storing bytes.
+async function expectStorageBucket(admin) {
+  // Storage enforces the bucket's WebP MIME and size constraints. The smoke
+  // object is deleted immediately so this check does not leave catalog data.
   const bytes = new Uint8Array([
     0x52, 0x49, 0x46, 0x46, 14, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50,
     0x38, 0x20, 1, 0, 0, 0, 0, 0,
   ]);
-  const form = new FormData();
-  form.append("file", new Blob([bytes], { type: "image/webp" }), "smoke.webp");
-  const { data: sessionData, error: sessionError } =
-    await admin.auth.getSession();
-  if (sessionError || !sessionData.session)
-    throw sessionError || new Error("Admin session missing");
-  const response = await fetch(
-    `${url.replace(/\/$/, "")}/functions/v1/clinic-upload`,
-    {
-      method: "POST",
-      headers: {
-        apikey: publishableKey,
-        Authorization: `Bearer ${sessionData.session.access_token}`,
-      },
-      body: form,
-    },
-  );
-  const body = await response.json().catch(() => ({}));
-  assert(
-    response.status === 503 && body?.error?.code === "R2_NOT_CONFIGURED",
-    "Expected clinic-upload to report R2_NOT_CONFIGURED",
-  );
+  const path = `clinic/smoke-${randomUUID()}.webp`;
+  const { error } = await admin.storage
+    .from("clinic-images")
+    .upload(path, new Blob([bytes], { type: "image/webp" }), {
+      contentType: "image/webp",
+      cacheControl: "60",
+      upsert: false,
+    });
+  if (error) throw error;
+  const { error: removeError } = await admin.storage
+    .from("clinic-images")
+    .remove([path]);
+  if (removeError) throw removeError;
 }
 
 const admin = client();
@@ -230,7 +221,7 @@ try {
   });
   assert(disabled.user?.active === false, "Temporary viewer was not disabled");
   await expectViewerReadDenied(viewer);
-  await expectUploadUnavailable(admin);
+  await expectStorageBucket(admin);
 } finally {
   if (temporaryUserId) {
     // The edge contract intentionally has no delete action. Leave this UUID

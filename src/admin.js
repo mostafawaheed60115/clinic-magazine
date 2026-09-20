@@ -43,7 +43,7 @@ const selectField = (key, label, options, value = "", required = true) =>
 
 function sidebar(route, authState) {
   const nav = [...collections, ...(authState.isAdmin ? ["users"] : [])];
-  return `<aside class="${a.sidebar}"><nav aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "users" ? "user" : "grid")}${t(labelFor(c))}</a>`).join("")}</nav><small>${t("localOnly")}</small>${button(t("signOut"), 'id="app-sign-out"', "ghost")}</aside>`;
+  return `<aside class="${a.sidebar}"><nav aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "users" ? "user" : "grid")}${t(labelFor(c))}</a>`).join("")}</nav><small>${authState.mode === "demo" ? t("localOnly") : t("cloudManaged")}</small>${button(t("signOut"), 'id="app-sign-out"', "ghost")}</aside>`;
 }
 function overview(data, authState) {
   const reset =
@@ -61,13 +61,14 @@ function list(data, route, c, users = []) {
   return `<div class="${a.head}"><div><h1 tabindex="-1">${t(labelFor(c))}</h1><p>${number(page.total)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/${c}/new">${icon("plus")}${t("add")}</a></div>${searchBox(q, c === "products" ? "searchProducts" : "searchBrands")}<p id="admin-error" class="${s.error}" role="alert"></p>${page.total ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t(labelFor(c))}"><table class="${a.table}"><thead><tr><th scope="col">${t(locale === "ar" ? "nameAr" : "nameEn")}</th><th scope="col">${t(c === "products" ? "finalPrice" : c === "companies" ? "products" : "brand")}</th><th scope="col">${t("actions")}</th></tr></thead><tbody>${page.items.map((item) => `<tr><td><div class="${a.imageCell}">${c !== "companies" ? image(item.img_url || item.img_link, nameOf(item)) : ""}<span>${esc(nameOf(item))}<small dir="ltr">${esc(item.name_en)}</small></span></div></td><td>${c === "products" ? money(item.final_price) : c === "companies" ? number(data.products.filter((p) => p.company_id === item.id).length) : esc(nameOf(data.companies.find((b) => b.id === item.company_id)))}</td><td><div class="${a.tableActions}"><a class="${s.iconButton}" href="#/admin/${c}/edit/${encodeURIComponent(item.id)}" aria-label="${t("edit")}: ${esc(nameOf(item))}">${icon("edit")}</a><button type="button" class="${s.iconButton}" data-delete="${esc(item.id)}" aria-label="${t("delete")}: ${esc(nameOf(item))}">${icon("trash")}</button></div></td></tr>`).join("")}</tbody></table></div>${pagination(page.page, page.pages)}` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
 }
 function userList(users, q) {
+  const usernameOf = (user) => user.username || user.user || user.email || "";
   const filtered = users.filter((u) =>
-    matches({ name_ar: u.name || "", name_en: u.user || u.email || "" }, q),
+    matches({ name_ar: u.name || "", name_en: usernameOf(u) }, q),
   );
-  return `<div class="${a.head}"><div><h1 tabindex="-1">${t("users")}</h1><p>${number(filtered.length)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/users/new">${icon("plus")}${t("add")}</a></div>${searchBox(q, "username")}<p id="admin-error" class="${s.error}" role="alert"></p>${filtered.length ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t("users")}"><table class="${a.table}"><thead><tr><th>${t("username")}</th><th>${t("role")}</th><th>${t("active")}</th><th>${t("actions")}</th></tr></thead><tbody>${filtered.map((u) => `<tr><td><strong>${esc(u.name || u.user || u.email || "")}</strong><small dir="ltr">${esc(u.user || u.email || "")}</small></td><td>${esc(t(u.role === "admin" ? "admin" : u.role === "manager" ? "manager" : "viewer"))}</td><td><span class="${u.active === false ? a.inactive : a.active}">${u.active === false ? t("disableUser") : t("active")}</span></td><td><a class="${s.iconButton}" href="#/admin/users/edit/${encodeURIComponent(u.id)}" aria-label="${t("edit")}: ${esc(u.name || u.user)}">${icon("edit")}</a></td></tr>`).join("")}</tbody></table></div>` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
+  return `<div class="${a.head}"><div><h1 tabindex="-1">${t("users")}</h1><p>${number(filtered.length)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/users/new">${icon("plus")}${t("add")}</a></div>${searchBox(q, "username")}<p id="admin-error" class="${s.error}" role="alert"></p>${filtered.length ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t("users")}"><table class="${a.table}"><thead><tr><th>${t("username")}</th><th>${t("active")}</th><th>${t("actions")}</th></tr></thead><tbody>${filtered.map((u) => `<tr><td><strong>${esc(u.name || "")}</strong><small dir="ltr">${esc(usernameOf(u))}</small></td><td><span class="${u.active === false ? a.inactive : a.active}">${u.active === false ? t("disableUser") : t("active")}</span></td><td><a class="${s.iconButton}" href="#/admin/users/edit/${encodeURIComponent(u.id)}" aria-label="${t("edit")}: ${esc(u.name || usernameOf(u))}">${icon("edit")}</a></td></tr>`).join("")}</tbody></table></div>` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
 }
 function imageFields(c, item, imgKey) {
-  return `${field("image_url", "imageUrl", item[imgKey]?.startsWith("https://") ? item[imgKey] : "", { type: "url", full: true, dir: "ltr" })}<div class="${a.field} ${a.full}"><label for="field-image-file">${t("upload")}</label><input id="field-image-file" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="image-help field-image-file-error" /><small id="image-help">${t("imageHelp")}</small><span id="field-image-file-error" class="${s.error}"></span>${image(item[imgKey] || "./assets/image-fallback.svg", t("preview"), a.preview)}</div>`;
+  return `${field("image_url", "imageUrl", item[imgKey]?.startsWith("https://") ? item[imgKey] : "", { type: "url", full: true, dir: "ltr" })}<div class="${a.mediaField} ${a.field} ${a.full}"><label for="field-image-file">${t("upload")}</label><input id="field-image-file" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="image-help field-image-file-error" /><small id="image-help">${t("imageHelp")}</small><span id="field-image-file-error" class="${s.error}"></span>${image(item[imgKey] || "./assets/image-fallback.svg", t("preview"), a.preview)}</div>`;
 }
 function editor(data, route, c) {
   const edit = route.parts[2] === "edit";
@@ -108,16 +109,8 @@ function userEditor(users, route) {
   const edit = route.parts[2] === "edit";
   const item = edit ? users.find((u) => u.id === route.parts[3]) : {};
   if (!item) return notFound();
-  return `<div class="${a.head}"><h1 tabindex="-1">${t(edit ? "updateUser" : "createUser")}</h1></div><p class="${a.note}">${t("passwordNeverShown")}</p><form id="user-form" class="${a.form}" novalidate data-id="${esc(item.id || "")}"><div class="${a.formGrid}">${field("name", "nameEn", item.name, { required: true })}${field("user", "username", item.user || item.email, { required: true, dir: "ltr", extra: 'autocomplete="username"' })}${field("phone", "phone", item.phone, { type: "tel", dir: "ltr" })}${selectField(
-    "role",
-    "role",
-    [
-      ["viewer", t("viewer")],
-      ["manager", t("manager")],
-      ["admin", t("admin")],
-    ],
-    item.role || "viewer",
-  )}${field("password", edit ? "resetPassword" : "password", "", { type: "password", required: !edit, dir: "ltr", extra: 'autocomplete="new-password"' })}${edit ? `<div class="${a.field}"><label for="field-active">${t("active")}</label><select id="field-active" name="active"><option value="true" ${item.active !== false ? "selected" : ""}>${t("enableUser")}</option><option value="false" ${item.active === false ? "selected" : ""}>${t("disableUser")}</option></select></div>` : ""}</div><p id="user-form-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}">${t("save")}</button><a class="${s.button} ${s.secondary}" href="#/admin/users">${t("cancel")}</a></div></form>`;
+  const username = item.username || item.user || item.email || "";
+  return `<div class="${a.head}"><h1 tabindex="-1">${t(edit ? "updateUser" : "createUser")}</h1></div><p class="${a.note}">${t("passwordNeverShown")}</p><form id="user-form" class="${a.form}" novalidate data-id="${esc(item.id || "")}" data-revision="${esc(item.revision || 1)}"><div class="${a.formGrid}">${field("name", "nameEn", item.name, { required: true })}${field("user", "username", username, { required: true, dir: "ltr", extra: `${edit ? "readonly" : ""} autocomplete="username"` })}${field("phone", "phone", item.phone, { type: "tel", dir: "ltr" })}${field("password", edit ? "resetPassword" : "password", "", { type: "password", required: !edit, dir: "ltr", extra: 'autocomplete="new-password"' })}${edit ? `<div class="${a.field}"><label for="field-active">${t("active")}</label><select id="field-active" name="active"><option value="true" ${item.active !== false ? "selected" : ""}>${t("enableUser")}</option><option value="false" ${item.active === false ? "selected" : ""}>${t("disableUser")}</option></select></div>` : ""}</div><p id="user-form-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}">${t("save")}</button><a class="${s.button} ${s.secondary}" href="#/admin/users">${t("cancel")}</a></div></form>`;
 }
 export function adminPage(data, route, authState) {
   const c = route.parts[1];
@@ -135,10 +128,18 @@ export function adminPage(data, route, authState) {
         : list(data, route, c);
   return `<div class="${a.layout}">${sidebar(route, authState)}<section>${content}</section></div>`;
 }
-const errorMessage = (error) =>
-  t(
-    ["conflict", "inUse"].includes(error.message) ? error.message : "saveError",
-  );
+const errorMessage = (error) => {
+  const code = error?.code || error?.message;
+  if (code === "conflict" || code === "inUse") return t(code);
+  if (code === "unconfigured" || code === "storage_not_configured")
+    return t("uploadNotConfigured");
+  if (code === "storage_upload_failed") return t("uploadFailed");
+  if (code === "output_too_large") return t("uploadTooLarge");
+  if (code === "dimensions" || code === "invalid_image")
+    return t("imageProcessingError");
+  if (code === "timeout") return t("uploadTimeout");
+  return t("saveError");
+};
 export function bindAdmin(root, data, route, context) {
   const { signal, render, navigate, authState } = context;
   root.querySelectorAll("[data-delete]").forEach((btn) =>
@@ -390,6 +391,7 @@ function bindUserEditor(root, form, users, context) {
             name: values.name.trim(),
             phone: values.phone.trim(),
             active: values.active !== "false",
+            expectedRevision: Number(form.dataset.revision) || 1,
             ...(password ? { password } : {}),
           });
         else

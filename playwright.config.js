@@ -20,6 +20,8 @@ export default defineConfig({
       VITE_SUPABASE_URL: "",
       VITE_SUPABASE_PUBLISHABLE_KEY: "",
     },
-    reuseExistingServer: true,
+    // Never attach to a stale Vite process with different auth environment.
+    // The demo suite must always boot with its explicit isolated configuration.
+    reuseExistingServer: false,
   },
 });

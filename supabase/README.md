@@ -11,12 +11,32 @@ The catalog Data API is closed to `anon`. An active `public.users` row can read 
 ```ts
 type AdminUserRequest =
   | { action: "list"; page?: number; pageSize?: number }
-  | { action: "create"; username: string; name: string; phone?: string; password: string; active?: boolean }
-  | { action: "update" | "edit" | "set_active"; userId: string; expectedRevision: number; name?: string; phone?: string; active?: boolean }
+  | {
+      action: "create";
+      username: string;
+      name: string;
+      phone?: string;
+      password: string;
+      active?: boolean;
+    }
+  | {
+      action: "update" | "edit" | "set_active";
+      userId: string;
+      expectedRevision: number;
+      name?: string;
+      phone?: string;
+      active?: boolean;
+    }
   | { action: "reset_password"; userId: string; password: string };
 
 type AdminUserResponse =
-  | { ok: true; users: UserSummary[] }
+  | {
+      ok: true;
+      users: UserSummary[];
+      page: number;
+      pageSize: number;
+      hasMore: boolean;
+    }
   | { ok: true; user: UserSummary }
   | { ok: true; userId: string }
   | { ok: false; error: { code: string; message: string } };
@@ -24,15 +44,30 @@ type AdminUserResponse =
 
 `create` never creates an admin membership. The ordinary user endpoint does not change any admin membership, which prevents self-disable and last-admin races; admin membership changes remain a separate controlled operation. Lists are paged at 100 rows by default (`hasMore` indicates another request). Auth errors and stale revisions use stable error codes; password values are never returned or persisted in public tables.
 
-`clinic-upload` accepts `POST multipart/form-data` with a `file` field. The file must be a structurally valid RIFF/WEBP image no larger than 5 MB. It uploads under the server-owned `clinic/<uuid>.webp` prefix using R2 credentials held in Edge Function secrets and returns:
+## Image storage
+
+The `clinic_storage` migration creates the public `clinic-images` Supabase Storage bucket. Objects are limited to WebP and 5 MB. Public reads keep catalog image delivery fast, while Storage RLS permits insert, update, and delete only when `private.is_admin()` confirms an active administrator. The browser converts selected images to WebP, then uploads directly with the authenticated Supabase client:
 
 ```ts
-type UploadResponse =
-  | { ok: true; url: string; key: `clinic/${string}.webp` }
-  | { ok: false; error: { code: string; message: string } };
+const { error } = await supabase.storage
+  .from("clinic-images")
+  .upload(`clinic/${crypto.randomUUID()}.webp`, webpBlob, {
+    contentType: "image/webp",
+    cacheControl: "31536000",
+    upsert: false,
+  });
 ```
 
-The browser never supplies an object key. Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_BASE_URL`, and `ALLOWED_ORIGINS` as function secrets. If `ALLOWED_ORIGINS` is omitted, only local Vite ports 5173 and 4173 on loopback are accepted for development; configure explicit HTTPS origins before production use.
+The returned public URL is stored in `companies.logo_url`, `products.img_url`, or `offers.img_link`. No object-storage secrets or upload Edge Function are required in the browser. Keep the publishable Supabase key in `VITE_SUPABASE_PUBLISHABLE_KEY`; never expose a service-role key. The `clinic-admin-users` Edge Function remains server-side because Auth user management requires the service role.
+
+Apply the migration before enabling live uploads:
+
+```powershell
+npx supabase link --project-ref twllyczdtmitsupfvjgx
+npx supabase db push
+```
+
+The linked project must be the intended Clinic database, and the CLI must be authenticated outside this repository.
 
 ## First administrator
 

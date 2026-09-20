@@ -40,6 +40,21 @@ test("localization dictionaries have complete parity", () => {
   );
 });
 
+test("direct /admin entry reaches the authenticated admin panel", async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    localStorage.removeItem("clinic-demo-session"),
+  );
+  await page.goto("/admin");
+  await expect(page.locator("#login-form")).toBeVisible();
+  await page.locator("#login-user").fill("admin");
+  await page.locator("#login-pass").fill("clinic");
+  await page.locator("#login-form button[type=submit]").click();
+  await expect(page.locator("aside")).toBeVisible();
+  await expect(page.locator("h1")).toHaveText("نظرة عامة");
+});
+
 test("Arabic default, carousel, language and keyboard", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

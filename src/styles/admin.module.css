@@ -138,6 +138,41 @@
   border: 1px solid var(--line);
   border-radius: 8px;
 }
+.mediaField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px;
+  grid-template-areas:
+    "label preview"
+    "file preview"
+    "help preview"
+    "error preview";
+  align-items: start;
+  column-gap: 24px;
+  row-gap: 7px;
+}
+.mediaField > label {
+  grid-area: label;
+}
+.mediaField > input[type="file"] {
+  grid-area: file;
+  width: 100%;
+  min-height: 46px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+.mediaField > small {
+  grid-area: help;
+}
+.mediaField > span {
+  grid-area: error;
+}
+.mediaField > .preview {
+  grid-area: preview;
+  width: 210px;
+  height: 164px;
+}
 .metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -277,6 +312,13 @@
   .formGrid {
     grid-template-columns: 1fr;
   }
+  .mediaField {
+    grid-template-columns: minmax(0, 1fr) 170px;
+  }
+  .mediaField > .preview {
+    width: 170px;
+    height: 132px;
+  }
 }
 @media (max-width: 680px) {
   .layout {
@@ -365,5 +407,20 @@
   }
   .tableWrap {
     margin-inline: -4px;
+  }
+  .mediaField {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "label"
+      "file"
+      "help"
+      "error"
+      "preview";
+  }
+  .mediaField > .preview {
+    width: 100%;
+    max-width: 240px;
+    height: 180px;
   }
 }

@@ -1,6 +1,5 @@
 {
   "imports": {
-    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.57.4",
-    "aws4fetch": "npm:aws4fetch@1.0.19"
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.57.4"
   }
 }

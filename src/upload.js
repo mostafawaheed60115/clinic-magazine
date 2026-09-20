@@ -1,4 +1,4 @@
-import { cloudConfigured, getSupabase, imageUploadUrl } from "./cloud.js";
+import { cloudConfigured, getSupabase, IMAGE_BUCKET } from "./cloud.js";
 import { isDemoMode } from "./auth.js";
 
 const MAX_INPUT_BYTES = 10 * 1024 * 1024;
@@ -143,80 +143,31 @@ export async function uploadImage(prepared, { signal, onProgress } = {}) {
     throw uploadError("Image uploads are not configured", "unconfigured");
   assertActive(signal);
   const client = getSupabase();
-  const { data, error } = await client.auth.getSession();
-  if (error) throw error;
-  const token = data.session?.access_token;
-  if (!token)
-    throw uploadError("Sign in before uploading images", "unauthorized");
-  const form = new FormData();
-  form.append("file", prepared.blob, "image.webp");
-  const result = await new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    let abortListener;
-    const cleanup = () => {
-      if (signal && abortListener)
-        signal.removeEventListener("abort", abortListener);
-      request.onload = null;
-      request.onerror = null;
-      request.onabort = null;
-      request.ontimeout = null;
-    };
-    const fail = (error) => {
-      cleanup();
-      reject(error);
-    };
-    request.open("POST", imageUploadUrl());
-    request.timeout = 120_000;
-    request.setRequestHeader(
-      "apikey",
-      String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
+  if (signal?.aborted) throw uploadError("Upload cancelled", "aborted");
+  onProgress?.(0);
+  const key = `clinic/${crypto.randomUUID()}.webp`;
+  const { error } = await client.storage
+    .from(IMAGE_BUCKET)
+    .upload(key, prepared.blob, {
+      cacheControl: "31536000",
+      contentType: "image/webp",
+      upsert: false,
+    });
+  if (error) {
+    const code = /bucket|not found|configured/i.test(error.message || "")
+      ? "storage_not_configured"
+      : "storage_upload_failed";
+    throw uploadError(error.message || "Image upload failed", code);
+  }
+  assertActive(signal);
+  const { data } = client.storage.from(IMAGE_BUCKET).getPublicUrl(key);
+  if (!data?.publicUrl)
+    throw uploadError(
+      "Storage did not return a public image URL",
+      "storage_upload_failed",
     );
-    request.setRequestHeader("Authorization", `Bearer ${token}`);
-    request.responseType = "text";
-    request.upload.onprogress = (event) => {
-      if (event.lengthComputable) onProgress?.(event.loaded / event.total);
-    };
-    request.onload = () => {
-      let body;
-      try {
-        body = JSON.parse(request.responseText || "{}");
-      } catch {
-        body = {};
-      }
-      if (request.status < 200 || request.status >= 300)
-        return fail(
-          uploadError(
-            typeof body.error === "string"
-              ? body.error
-              : body.error?.message || "Image upload failed",
-            body.error?.code || "upload_failed",
-          ),
-        );
-      const payload = body.data || body;
-      if (!payload.url)
-        return fail(
-          uploadError("Upload response did not include a URL", "upload_failed"),
-        );
-      onProgress?.(1);
-      cleanup();
-      resolve({ url: payload.url, key: payload.key || "" });
-    };
-    request.onerror = () => fail(uploadError("Image upload failed", "network"));
-    request.ontimeout = () =>
-      fail(uploadError("Image upload timed out", "timeout"));
-    request.onabort = () => fail(uploadError("Upload cancelled", "aborted"));
-    if (signal) {
-      abortListener = () => {
-        request.abort();
-        fail(uploadError("Upload cancelled", "aborted"));
-      };
-      if (signal.aborted)
-        return fail(uploadError("Upload cancelled", "aborted"));
-      signal.addEventListener("abort", abortListener, { once: true });
-    }
-    request.send(form);
-  });
-  return result;
+  onProgress?.(1);
+  return { url: data.publicUrl, key };
 }
 
 export { MAX_INPUT_BYTES, MAX_OUTPUT_BYTES, MAX_DIMENSION, MAX_PIXELS };

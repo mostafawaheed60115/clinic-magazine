@@ -324,9 +324,18 @@ export async function loadUsers() {
   if (!state.isAdmin)
     throw authError("Administrator access required", "forbidden");
   if (mode === "demo") return demoUserRecords().map(publicUser);
-  const data = await invokeAdmin("list");
-  const users = adminResponse(data, "users");
-  return Array.isArray(users) ? users : [];
+  const users = [];
+  for (let page = 0; page < 1000; page += 1) {
+    const data = await invokeAdmin("list", { page, pageSize: 100 });
+    const batch = adminResponse(data, "users");
+    if (!Array.isArray(batch)) return users;
+    users.push(...batch);
+    if (!data.hasMore || batch.length === 0) return users;
+  }
+  throw authError(
+    "The user list exceeds the configured limit",
+    "too_many_users",
+  );
 }
 
 export async function createUser({ name, user, password, phone = "" }) {
@@ -389,21 +398,30 @@ export async function updateUser(id, updates = {}) {
     if (state.user?.id === id && !next.active) await signOut();
     return publicUser(next);
   }
-  if (updates.password !== undefined)
-    return adminResponse(
+  const profileKeys = ["name", "phone", "active"];
+  const hasProfileChanges = profileKeys.some(
+    (key) => updates[key] !== undefined,
+  );
+  let updated;
+  if (hasProfileChanges) {
+    const expectedRevision = Number(updates.expectedRevision);
+    if (!Number.isInteger(expectedRevision) || expectedRevision < 1)
+      throw authError("A current revision is required", "invalid_revision");
+    const payload = { userId: id, expectedRevision };
+    for (const key of profileKeys)
+      if (updates[key] !== undefined) payload[key] = updates[key];
+    updated = adminResponse(await invokeAdmin("edit", payload), "user");
+  }
+  if (updates.password !== undefined) {
+    await adminResponse(
       await invokeAdmin("reset_password", {
         userId: id,
         password: updates.password,
       }),
       "userId",
     );
-  const expectedRevision = Number(updates.expectedRevision);
-  if (!Number.isInteger(expectedRevision) || expectedRevision < 1)
-    throw authError("A current revision is required", "invalid_revision");
-  const payload = { userId: id, expectedRevision };
-  for (const key of ["name", "phone", "active"])
-    if (updates[key] !== undefined) payload[key] = updates[key];
-  return adminResponse(await invokeAdmin("edit", payload), "user");
+  }
+  return updated || { id };
 }
 
 export { emailFor, normalizeUsername };

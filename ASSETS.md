@@ -4,6 +4,8 @@ Original logo and six-color palette: supplied by the user in `assets/` and prese
 
 Refined SVG symbol and logo: authored for this project, preserving the original face and heartbeat idea in pink/charcoal. `public/assets/clinic-symbol.svg` is a path-based symbol; `clinic-logo.svg` includes an editable wordmark. The website uses self-hosted Manrope for the matching wordmark.
 
+`public/assets/new_logo.png` is retained as an alternate supplied logo artwork; the interface uses the optimized SVG mark for crisp responsive rendering.
+
 Fonts: Cairo Variable and Manrope Variable, self-hosted through their Fontsource npm packages; their licenses are included in the installed packages.
 
 Built-in image generation produced three fictional sample assets, converted to WebP with FFmpeg for delivery. No existing product branding was requested or depicted.
