@@ -840,55 +840,242 @@
 .loginShell {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(390px, .92fr);
+  grid-template-columns: minmax(0, 1.08fr) minmax(390px, 0.92fr);
   margin-inline: calc(clamp(20px, 4.3vw, 64px) * -1);
 }
 .loginVisual {
   min-height: 720px;
   position: relative;
-  background: linear-gradient(150deg, rgb(43 38 43 / .1), rgb(43 38 43 / .03)), url("/assets/campaign.webp") center / cover;
+  background:
+    linear-gradient(150deg, rgb(43 38 43 / 0.1), rgb(43 38 43 / 0.03)),
+    url("/assets/campaign.webp") center / cover;
   padding: 34px clamp(28px, 5vw, 74px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   color: var(--paper);
 }
-.loginVisual::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgb(43 38 43 / .22), transparent 38%, rgb(43 38 43 / .45)); pointer-events: none; }
-.loginLogo, .loginCaption { position: relative; z-index: 1; }
-.loginLogo { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; direction: ltr; }
-.loginLogo img { width: 48px; height: 38px; filter: brightness(0) invert(1); }
-.loginLogo span { font-family: "Manrope Variable", sans-serif; font-size: 31px; letter-spacing: -1.5px; font-weight: 650; }
-.loginCaption { max-width: 440px; }
-.loginCaption span, .eyebrow { text-transform: uppercase; letter-spacing: .13em; font-size: 11px; font-weight: 750; color: var(--rose); }
-.loginCaption span { color: var(--primary); }
-.loginCaption p { margin-top: 12px; font-size: clamp(28px, 4vw, 54px); line-height: 1.12; max-width: 10ch; font-weight: 600; }
-.loginPanel { background: var(--background); display: flex; align-items: center; padding: clamp(30px, 7vw, 96px); }
-.loginPanelInner { width: min(100%, 430px); }
-.loginPanel h1 { font-size: clamp(32px, 4vw, 48px); margin-top: 14px; }
-.loginText { color: var(--muted); margin-top: 13px; max-width: 34ch; }
-.demoLoginNote { margin-top: 22px; padding: 13px 16px; border-inline-start: 3px solid var(--rose); color: var(--muted); font-size: 12px; }
-.demoLoginNote small { display: inline-block; margin-top: 5px; color: var(--ink); }
-.loginForm { margin-top: 34px; display: grid; gap: 18px; }
-.loginField { display: grid; gap: 7px; }
-.loginField label { font-size: 13px; font-weight: 700; }
-.loginField input { width: 100%; min-height: 52px; padding: 13px 15px; border: 1px solid var(--line); border-radius: var(--control-radius, 8px); background: var(--paper); }
-.passwordWrap { display: flex; gap: 8px; }
-.passwordWrap input { min-width: 0; }
-.loginSubmit { width: 100%; justify-content: space-between; min-height: 52px; margin-top: 5px; }
-.loginLanguage { margin-top: 25px; display: flex; justify-content: flex-end; }
-.loginLanguage button { min-height: 44px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; color: var(--muted); }
-.adminCrumb { color: var(--muted); font-size: 13px; font-weight: 700; margin-inline-end: auto; }
-.productDetail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .82fr); gap: clamp(30px, 7vw, 100px); align-items: center; padding: 44px 0 88px; }
-.productDetailImage { aspect-ratio: 4 / 5; max-height: 660px; background: var(--blush); border-radius: var(--radius); overflow: hidden; }
-.productDetailImage img { width: 100%; height: 100%; object-fit: cover; }
-.productDetailCopy { max-width: 500px; }
-.productDetailCopy h1 { font-size: clamp(36px, 5vw, 64px); margin-top: 17px; }
-.productDetailPrice { font-size: 27px; font-weight: 750; font-variant-numeric: tabular-nums; margin-top: 22px; }
-.productSpecs { margin: 28px 0; border-block: 1px solid var(--line); }
-.productSpecs div { display: flex; justify-content: space-between; gap: 24px; padding: 13px 0; border-bottom: 1px solid var(--line); }
-.productSpecs div:last-child { border: 0; }
-.productSpecs dt { color: var(--muted); font-size: 13px; }
-.productSpecs dd { margin: 0; font-weight: 700; }
-.productActions { display: flex; flex-wrap: wrap; gap: 10px; }
-.productActions .button { min-height: 48px; }
-@media (max-width: 800px) { .loginShell { display: block; margin-inline: -20px; } .loginVisual { min-height: 300px; padding: 24px 20px; } .loginCaption p { font-size: 31px; } .loginPanel { padding: 38px 20px 54px; } .productDetail { grid-template-columns: 1fr; padding-top: 25px; } .productDetailImage { max-height: none; } }
+.loginVisual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgb(43 38 43 / 0.22),
+    transparent 38%,
+    rgb(43 38 43 / 0.45)
+  );
+  pointer-events: none;
+}
+.loginLogo,
+.loginCaption {
+  position: relative;
+  z-index: 1;
+}
+.loginLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  direction: ltr;
+}
+.loginLogo img {
+  width: 48px;
+  height: 38px;
+  filter: brightness(0) invert(1);
+}
+.loginLogo span {
+  font-family: "Manrope Variable", sans-serif;
+  font-size: 31px;
+  letter-spacing: -1.5px;
+  font-weight: 650;
+}
+.loginCaption {
+  max-width: 440px;
+}
+.loginCaption span,
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--rose);
+}
+.loginCaption span {
+  color: var(--primary);
+}
+.loginCaption p {
+  margin-top: 12px;
+  font-size: clamp(28px, 4vw, 54px);
+  line-height: 1.12;
+  max-width: 10ch;
+  font-weight: 600;
+}
+.loginPanel {
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  padding: clamp(30px, 7vw, 96px);
+}
+.loginPanelInner {
+  width: min(100%, 430px);
+}
+.loginPanel h1 {
+  font-size: clamp(32px, 4vw, 48px);
+  margin-top: 14px;
+}
+.loginText {
+  color: var(--muted);
+  margin-top: 13px;
+  max-width: 34ch;
+}
+.demoLoginNote {
+  margin-top: 22px;
+  padding: 13px 16px;
+  border-inline-start: 3px solid var(--rose);
+  color: var(--muted);
+  font-size: 12px;
+}
+.demoLoginNote small {
+  display: inline-block;
+  margin-top: 5px;
+  color: var(--ink);
+}
+.loginForm {
+  margin-top: 34px;
+  display: grid;
+  gap: 18px;
+}
+.loginField {
+  display: grid;
+  gap: 7px;
+}
+.loginField label {
+  font-size: 13px;
+  font-weight: 700;
+}
+.loginField input {
+  width: 100%;
+  min-height: 52px;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius, 8px);
+  background: var(--paper);
+}
+.passwordWrap {
+  display: flex;
+  gap: 8px;
+}
+.passwordWrap input {
+  min-width: 0;
+}
+.loginSubmit {
+  width: 100%;
+  justify-content: space-between;
+  min-height: 52px;
+  margin-top: 5px;
+}
+.loginLanguage {
+  margin-top: 25px;
+  display: flex;
+  justify-content: flex-end;
+}
+.loginLanguage button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  color: var(--muted);
+}
+.adminCrumb {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  margin-inline-end: auto;
+}
+.productDetail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.82fr);
+  gap: clamp(30px, 7vw, 100px);
+  align-items: center;
+  padding: 44px 0 88px;
+}
+.productDetailImage {
+  aspect-ratio: 4 / 5;
+  max-height: 660px;
+  background: var(--blush);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.productDetailImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.productDetailCopy {
+  max-width: 500px;
+}
+.productDetailCopy h1 {
+  font-size: clamp(36px, 5vw, 64px);
+  margin-top: 17px;
+}
+.productDetailPrice {
+  font-size: 27px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  margin-top: 22px;
+}
+.productSpecs {
+  margin: 28px 0;
+  border-block: 1px solid var(--line);
+}
+.productSpecs div {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+.productSpecs div:last-child {
+  border: 0;
+}
+.productSpecs dt {
+  color: var(--muted);
+  font-size: 13px;
+}
+.productSpecs dd {
+  margin: 0;
+  font-weight: 700;
+}
+.productActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.productActions .button {
+  min-height: 48px;
+}
+@media (max-width: 800px) {
+  .loginShell {
+    display: block;
+    margin-inline: -20px;
+  }
+  .loginVisual {
+    min-height: 300px;
+    padding: 24px 20px;
+  }
+  .loginCaption p {
+    font-size: 31px;
+  }
+  .loginPanel {
+    padding: 38px 20px 54px;
+  }
+  .productDetail {
+    grid-template-columns: 1fr;
+    padding-top: 25px;
+  }
+  .productDetailImage {
+    max-height: none;
+  }
+}

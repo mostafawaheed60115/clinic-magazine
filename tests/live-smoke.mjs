@@ -107,8 +107,8 @@ async function expectUploadUnavailable(admin) {
   // A minimal complete RIFF/WEBP container passes the function's structural
   // validation and reaches the R2 configuration check without storing bytes.
   const bytes = new Uint8Array([
-    0x52, 0x49, 0x46, 0x46, 14, 0, 0, 0, 0x57, 0x45, 0x42, 0x50,
-    0x56, 0x50, 0x38, 0x20, 1, 0, 0, 0, 0, 0,
+    0x52, 0x49, 0x46, 0x46, 14, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50,
+    0x38, 0x20, 1, 0, 0, 0, 0, 0,
   ]);
   const form = new FormData();
   form.append("file", new Blob([bytes], { type: "image/webp" }), "smoke.webp");

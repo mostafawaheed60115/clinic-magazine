@@ -62,4 +62,15 @@ npm run build
 
 Playwright uses installed Microsoft Edge. Tests run against explicit demo configuration on a separate port. `VERIFICATION.md` records completed checks and configuration limits; it distinguishes local preview tests from live backend tests. Secrets, local environment files and temporary provisioning artifacts are excluded from delivery archives.
 
+## Vercel Deployment
+
+The project includes `vercel.json` pre-configured with SPA route rewrites, immutable asset caching, and HTTP security headers.
+
+1. Import the repository in [Vercel](https://vercel.com).
+2. Framework preset: **Vite** (Build command: `npm run build`, Output directory: `dist`).
+3. Set the following **Environment Variables** in project settings:
+   - `VITE_SUPABASE_URL`: `https://twllyczdtmitsupfvjgx.supabase.co`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`: `sb_publishable_z4d37t9sfGZyrXRquZCXDA_5UfPVqZ5`
+   - `VITE_DEMO_MODE`: `false`
+
 # clinic-magazine

@@ -8,3 +8,4 @@ work/
 !.env.example
 supabase/.temp/
 supabase/work/
+.vercel/
