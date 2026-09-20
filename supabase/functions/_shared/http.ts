@@ -19,7 +19,10 @@ export function allowedOrigins(): Set<string> {
 
 export function corsHeaders(request: Request): Headers {
   const headers = new Headers({
-    "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+    // supabase-js includes x-client-info on every browser function request.
+    // Without it the preflight is rejected even when the origin is trusted.
+    "Access-Control-Allow-Headers":
+      "authorization, apikey, content-type, x-client-info",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     Vary: "Origin",
   });
