@@ -189,6 +189,16 @@ export function bindAdmin(root, data, route, context) {
   if (form) bindEditor(root, form, data, context);
   const userForm = root.querySelector("#user-form");
   if (userForm) bindUserEditor(root, userForm, authState.users || [], context);
+  root.querySelector("#retry-users")?.addEventListener(
+    "click",
+    async (event) => {
+      event.currentTarget.disabled = true;
+      authState.users = undefined;
+      authState.usersError = false;
+      await render();
+    },
+    { signal },
+  );
 }
 function bindEditor(root, form, data, context) {
   const { signal, navigate } = context;
