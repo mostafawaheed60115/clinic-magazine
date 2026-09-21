@@ -95,18 +95,6 @@
   margin-top: 10px;
   font-size: 14px;
 }
-.edition {
-  font-size: 12px;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-  padding-bottom: 6px;
-}
-.edition svg {
-  color: var(--rose);
-}
 .cover {
   position: relative;
   isolation: isolate;
@@ -656,9 +644,6 @@
     font-size: 12px;
     max-width: 32ch;
   }
-  .edition {
-    display: none;
-  }
   .cover {
     grid-template-columns: 1fr;
     min-height: 0;
@@ -866,7 +851,7 @@
   padding: 42px clamp(28px, 5vw, 78px) 38px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-end;
   color: var(--paper);
   isolation: isolate;
 }
@@ -882,26 +867,9 @@
   );
   pointer-events: none;
 }
-.loginLogo,
 .loginCaption {
   position: relative;
   z-index: 1;
-}
-.loginLogo {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  align-self: flex-start;
-  direction: ltr;
-}
-.loginLogo img {
-  width: 96px;
-  height: 96px;
-  padding: 10px;
-  object-fit: contain;
-  border-radius: 20px;
-  background: rgb(255 253 249 / 0.94);
-  box-shadow: 0 12px 30px rgb(30 51 40 / 0.18);
 }
 .loginCaption {
   max-width: 440px;
@@ -1113,12 +1081,6 @@
     min-height: 340px;
     padding: 24px 20px 22px;
   }
-  .loginLogo img {
-    width: 72px;
-    height: 72px;
-    padding: 7px;
-    border-radius: 16px;
-  }
   .loginPanelLogo {
     width: 78px;
     height: 78px;
@@ -1151,5 +1113,83 @@
   }
   .productDetailImage {
     max-height: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .shell {
+    padding-inline: 16px;
+  }
+  .header {
+    min-height: 108px;
+    padding-block: 14px 12px;
+  }
+  .logo img {
+    width: 54px;
+    height: 54px;
+  }
+  .headerTools {
+    gap: 3px;
+  }
+  .headerTools .locale {
+    padding-inline: 4px;
+    font-size: 11px;
+  }
+  .headerTools .locale svg {
+    width: 16px;
+    height: 16px;
+  }
+  .nav {
+    gap: 26px;
+  }
+  .intro {
+    padding-block: 22px 18px;
+  }
+  .intro h1 {
+    font-size: 26px;
+  }
+  .coverCopy {
+    min-height: 286px;
+    padding: 24px 20px 26px;
+  }
+  .coverCopy h2 {
+    font-size: 30px;
+  }
+  .coverVisual {
+    min-height: 240px;
+  }
+  .carouselFoot {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding-block: 10px 4px;
+  }
+  .slideMeta {
+    order: 1;
+    flex: 1 1 100%;
+  }
+  .dots,
+  .carouselArrows {
+    order: 2;
+  }
+  .loginVisual {
+    min-height: 280px;
+    padding: 24px 18px 30px;
+  }
+  .loginCaption p {
+    font-size: 28px;
+  }
+  .loginPanel {
+    padding: 48px 18px 34px;
+  }
+  .loginPanelLogo {
+    width: 70px;
+    height: 70px;
+  }
+  .loginPanel h1 {
+    font-size: 31px;
+  }
+  .loginField input,
+  .loginSubmit {
+    min-height: 52px;
   }
 }

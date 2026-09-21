@@ -23,7 +23,6 @@ const paths = {
   edit: "m15 4 5 5M4 20l4-1L21 6l-4-4L4 15v5Z",
   trash: "M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7",
   check: "m5 12 4 4L19 6",
-  spark: "m12 3 2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7Z",
   copy: "M9 9h10v10H9zM5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1",
   external:
     "M14 4h6v6m-1-5L10 14M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5",
