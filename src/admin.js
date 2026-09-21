@@ -120,7 +120,7 @@ export function adminPage(data, route, authState) {
     : c === "users"
       ? route.parts[2]
         ? userEditor(authState.users || [], route)
-        : `${authState.usersError ? `<p id="admin-error" class="${s.error}" role="alert">${t("userError")} <button type="button" id="retry-users" class="${s.ghost}">${t("retry")}</button></p>` : ""}${list(data, route, c, authState.users || [])}`
+        : `${authState.usersError ? `<p id="admin-error" class="${s.error}" role="alert">${t("userError")} <button type="button" id="retry-users" class="${s.ghost}" onclick="this.dispatchEvent(new Event('clinic-retry-users'))">${t("retry")}</button></p>` : ""}${list(data, route, c, authState.users || [])}`
       : route.parts[2]
         ? ["new", "edit"].includes(route.parts[2])
           ? editor(data, route, c)
@@ -190,7 +190,7 @@ export function bindAdmin(root, data, route, context) {
   const userForm = root.querySelector("#user-form");
   if (userForm) bindUserEditor(root, userForm, authState.users || [], context);
   root.querySelector("#retry-users")?.addEventListener(
-    "click",
+    "clinic-retry-users",
     async (event) => {
       event.currentTarget.disabled = true;
       authState.users = undefined;

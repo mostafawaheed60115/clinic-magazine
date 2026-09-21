@@ -1,4 +1,4 @@
-import { isDemoMode } from "./auth.js";
+import { ensureSessionValid, isDemoMode } from "./auth.js";
 import * as demoStore from "./demo-store.js";
 import {
   cloudConfigured,
@@ -19,13 +19,22 @@ const unconfigured = () => {
   return error;
 };
 
+async function requireSession() {
+  if (await ensureSessionValid()) return;
+  const error = new Error("Your session has expired");
+  error.code = "session_expired";
+  throw error;
+}
+
 export async function readAll() {
+  await requireSession();
   if (isDemoMode()) return demoStore.readAll();
   if (!hasCloudConfig()) throw unconfigured();
   return readCatalog();
 }
 
 export async function saveItem(collection, item, expectedRevision) {
+  await requireSession();
   if (isDemoMode())
     return demoStore.saveItem(collection, item, expectedRevision);
   if (!hasCloudConfig()) throw unconfigured();
@@ -35,6 +44,7 @@ export async function saveItem(collection, item, expectedRevision) {
 }
 
 export async function deleteItem(collection, id, revision) {
+  await requireSession();
   if (isDemoMode()) return demoStore.deleteItem(collection, id, revision);
   if (!hasCloudConfig()) throw unconfigured();
   await deleteCatalogItem(collection, id, revision);
@@ -42,6 +52,7 @@ export async function deleteItem(collection, id, revision) {
 }
 
 export async function resetStore() {
+  await requireSession();
   if (isDemoMode()) return demoStore.resetStore();
   throw new Error("Reset is available only in demo mode");
 }

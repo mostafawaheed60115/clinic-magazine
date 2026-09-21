@@ -861,7 +861,7 @@
   min-height: 720px;
   position: relative;
   background:
-    linear-gradient(150deg, rgb(43 38 43 / 0.1), rgb(43 38 43 / 0.03)),
+    linear-gradient(150deg, rgb(30 51 40 / 0.18), rgb(30 51 40 / 0.04)),
     url("/assets/campaign.webp") center / cover;
   padding: 42px clamp(28px, 5vw, 78px) 38px;
   display: flex;
@@ -876,9 +876,9 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgb(43 38 43 / 0.22),
+    rgb(30 51 40 / 0.24),
     transparent 38%,
-    rgb(43 38 43 / 0.45)
+    rgb(30 51 40 / 0.54)
   );
   pointer-events: none;
 }
@@ -900,13 +900,12 @@
   padding: 10px;
   object-fit: contain;
   border-radius: 20px;
-  background: rgb(252 240 252 / 0.94);
-  box-shadow: 0 12px 30px rgb(43 38 43 / 0.18);
+  background: rgb(255 253 249 / 0.94);
+  box-shadow: 0 12px 30px rgb(30 51 40 / 0.18);
 }
 .loginCaption {
   max-width: 440px;
 }
-.loginCaption span,
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.13em;
@@ -914,27 +913,12 @@
   font-weight: 750;
   color: var(--rose);
 }
-.loginCaption span {
-  color: var(--primary);
-}
 .loginCaption p {
   margin-top: 12px;
   font-size: clamp(28px, 4vw, 54px);
   line-height: 1.12;
   max-width: 10ch;
   font-weight: 600;
-}
-.loginVisualMeta {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  padding-top: 18px;
-  border-top: 1px solid rgb(255 250 255 / 0.45);
-  color: rgb(255 250 255 / 0.82);
-  font-size: 12px;
-  letter-spacing: 0.02em;
 }
 .loginPanel {
   background: var(--background);
@@ -944,39 +928,16 @@
   padding: clamp(30px, 5vw, 70px) clamp(24px, 6vw, 88px);
   position: relative;
 }
+.loginPanelLogo {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  margin-block-end: 20px;
+  filter: drop-shadow(0 14px 24px rgb(67 154 98 / 0.16));
+}
 .loginPanelInner {
   width: min(100%, 440px);
   padding-block: 40px;
-}
-.loginBrand {
-  display: inline-flex;
-  align-items: center;
-  gap: 11px;
-  direction: ltr;
-  margin-bottom: 30px;
-}
-.loginBrand img {
-  width: 46px;
-  height: 46px;
-  padding: 5px;
-  object-fit: contain;
-  border-radius: 13px;
-  background: var(--primary);
-}
-.loginBrand span {
-  display: grid;
-  gap: 1px;
-  text-align: start;
-}
-.loginBrand strong {
-  font-family: "Manrope Variable", sans-serif;
-  font-size: 16px;
-  letter-spacing: 0.02em;
-}
-.loginBrand small {
-  color: var(--muted);
-  font-size: 10px;
-  letter-spacing: 0.04em;
 }
 .loginPanel h1 {
   font-size: clamp(34px, 4.4vw, 54px);
@@ -990,9 +951,9 @@
 .demoLoginNote {
   margin-top: 24px;
   padding: 15px 17px;
-  border: 1px solid rgb(204 90 121 / 0.3);
+  border: 1px solid rgb(67 154 98 / 0.28);
   border-radius: 12px;
-  background: rgb(255 213 217 / 0.42);
+  background: rgb(220 235 224 / 0.58);
   color: var(--muted);
   font-size: 12px;
 }
@@ -1048,7 +1009,7 @@
   border-color: var(--rose);
   background: var(--white);
   outline: none;
-  box-shadow: 0 0 0 4px rgb(204 90 121 / 0.12);
+  box-shadow: 0 0 0 4px rgb(67 154 98 / 0.16);
 }
 .passwordWrap {
   display: flex;
@@ -1074,31 +1035,6 @@
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 11px;
-}
-.loginSecureMark {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-  color: var(--rose);
-  font-weight: 750;
-}
-.loginSecureMark svg {
-  width: 14px;
-  height: 14px;
-}
-.loginLanguage {
-  margin-top: 25px;
-  display: flex;
-  justify-content: flex-end;
-}
-.loginLanguage button {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  color: var(--muted);
 }
 .adminCrumb {
   color: var(--muted);
@@ -1183,11 +1119,13 @@
     padding: 7px;
     border-radius: 16px;
   }
+  .loginPanelLogo {
+    width: 78px;
+    height: 78px;
+    margin-block-end: 16px;
+  }
   .loginCaption p {
     font-size: 31px;
-  }
-  .loginVisualMeta {
-    font-size: 10px;
   }
   .loginPanel {
     padding: 72px 20px 50px;
@@ -1201,9 +1139,6 @@
   }
   .loginPanelInner {
     padding-block: 0;
-  }
-  .loginBrand {
-    margin-bottom: 22px;
   }
   .loginFooter {
     align-items: flex-start;

@@ -1,32 +1,13 @@
 {
-  "findings": [
-    {
-      "category": "violation",
-      "file": "src/admin.js",
-      "line": 24,
-      "message": "Enabled literal button has no detectable action or submit behavior.",
-      "remediation": "Connect the button to a real action, make it a submit button, or disable/remove it.",
-      "ruleId": "affordance.actionless-button",
-      "severity": "error"
-    },
-    {
-      "category": "violation",
-      "file": "src/main.js",
-      "line": 33,
-      "message": "Enabled literal button has no detectable action or submit behavior.",
-      "remediation": "Connect the button to a real action, make it a submit button, or disable/remove it.",
-      "ruleId": "affordance.actionless-button",
-      "severity": "error"
-    }
-  ],
+  "findings": [],
   "mode": "strict",
   "projectRoot": "A:\\Nova AI\\Nova Projects\\CLINIC\\magazine project\\project",
   "schemaVersion": 1,
   "summary": {
-    "errors": 2,
-    "total": 2,
+    "errors": 0,
+    "total": 0,
     "unresolved": 0,
-    "violations": 2,
+    "violations": 0,
     "warnings": 0
   }
 }

@@ -1,26 +1,26 @@
 ---
 version: alpha
 colors:
-  background: "#fcf0fc"
-  primary: "#fac3f6"
-  foreground: "#2b262b"
-  accent: "#fc9af6"
-  blush: "#ffd5d9"
-  rose: "#cc5a79"
-  muted: "#675363"
-  paper: "#fffaff"
-  line: "#e5d8e3"
-  danger: "#982544"
-  dangerHover: "#73203b"
-  primaryHover: "#51414f"
-  onPinkMuted: "#574150"
-  scrollbar: "#aa839f"
-  inactive: "#bba4b7"
-  footerLine: "#5c4e5b"
+  background: "#f6f1eb"
+  primary: "#75af8e"
+  foreground: "#1e3328"
+  accent: "#439a62"
+  blush: "#dcebe0"
+  rose: "#2f7448"
+  muted: "#4f6558"
+  paper: "#fffdf9"
+  line: "#d4ded6"
+  danger: "#963f45"
+  dangerHover: "#713136"
+  primaryHover: "#2f7448"
+  onGreenMuted: "#1e3328"
+  scrollbar: "#75af8e"
+  inactive: "#96a39a"
+  footerLine: "#3f5a49"
   white: "#ffffff"
-  coverShadow: "#aa739012"
-  toastShadow: "#2b262b26"
-  dialogShadow: "#2b262b33"
+  coverShadow: "#439a6226"
+  toastShadow: "#1e332826"
+  dialogShadow: "#1e332833"
 typography:
   arabic:
     fontFamily: "Cairo Variable, sans-serif"
@@ -44,12 +44,12 @@ components:
 # Clinic visual identity
 
 ## Overview
-User-approved offer cover plus catalog. A pink cosmetics campaign spread anchored by a precise wholesale index. Public pages combine brand expression and catalog utility; admin prioritizes operations. No generic SaaS metrics hero. The signature is a wide photographic campaign cover with restrained slide movement.
+User-approved offer cover plus catalog. A calm linen and botanical-green cosmetics campaign spread anchored by a precise wholesale index. Public pages combine brand expression and catalog utility; admin prioritizes operations. No generic SaaS metrics hero. The signature is a wide photographic campaign cover with restrained slide movement.
 
-The 2026-09-20 extension places a branded sign-in surface before the magazine. Preserve the existing palette, fonts and refined logo: a desktop campaign image accompanies a calm, focused login form; on phones the form takes priority. Company search is prominent after sign-in. Product detail pages expose image and product links without making purchase claims. Admin management shares the same controls and tokens with denser content and a navigable narrow-screen layout.
+The 2026-09-20 extension places a branded sign-in surface before the magazine. Preserve the current green/linen palette, fonts and supplied logo: a desktop campaign image accompanies a calm, focused login form; on phones the form takes priority. Company search is prominent after sign-in. Product detail pages expose image and product links without making purchase claims. Admin management shares the same controls and tokens with denser content and a navigable narrow-screen layout.
 
 ## Colors
-Use the supplied palette. Charcoal text on pink and pale surfaces. Rose is decorative, never small text on pale pink. CSS tokens in src/styles/tokens.css own runtime values and map directly to this document.
+Use the supplied palette. Deep green text on linen and parchment surfaces. Shamrock green carries actions; muted teal and sage support surfaces. CSS tokens in src/styles/tokens.css own runtime values and map directly to this document.
 
 ## Typography
 Self-host Cairo for Arabic and Manrope for Latin. Fluid display sizes; Arabic has generous line height, no added tracking. Prices have tabular numerals.

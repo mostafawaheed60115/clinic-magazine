@@ -8,6 +8,7 @@ import {
   signOut,
   onAuthChange,
   loadUsers,
+  ensureSessionValid,
 } from "./auth.js";
 import {
   offersPage,
@@ -58,7 +59,7 @@ function chrome(route, content) {
   const current = route.parts[0];
   const direction = locale === "ar" ? "rtl" : "ltr";
   const admin = current === "admin";
-  return `<a class="${m.skip}" href="#main">${t("skip")}</a><div class="${m.shell}"><header class="${m.header}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/new_logo.png" alt="Clinic" width="92" height="92" /></a>${admin ? `<span class="${m.adminCrumb}">${t("admin")}</span>` : `<nav class="${m.nav}" dir="${direction}" aria-label="${t("browse")}"><a href="#/offers" ${current === "offers" ? 'aria-current="page"' : ""}>${t("offers")}</a><a href="#/brands" ${["brands", "brand", "product"].includes(current) ? 'aria-current="page"' : ""}>${t("brands")}</a></nav>`}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}">${icon("search")}${t("searchBrands")}</a><button id="app-sign-out" class="${m.locale}" type="button">${t("signOut")}</button>` : ""}</div></header><main id="main">${content}</main></div>${admin ? "" : `<footer class="${m.footer}"><div class="${m.shell}"><div class="${m.footerTop}"><div><h2>${t("footer")}</h2><p>${t("footerText")}</p></div><a href="#/brands">${t("exploreBrands")}${arrow()}</a></div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span><a href="#/admin">${t("admin")}</a></div></div></footer>`}<div class="${m.demoNotice}">${authState.mode === "demo" ? t("demo") : ""}</div>`;
+  return `<a class="${m.skip}" href="#main">${t("skip")}</a><div class="${m.shell}"><header class="${m.header}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="92" height="92" /></a>${admin ? `<span class="${m.adminCrumb}">${t("admin")}</span>` : `<nav class="${m.nav}" dir="${direction}" aria-label="${t("browse")}"><a href="#/offers" ${current === "offers" ? 'aria-current="page"' : ""}>${t("offers")}</a><a href="#/brands" ${["brands", "brand", "product"].includes(current) ? 'aria-current="page"' : ""}>${t("brands")}</a></nav>`}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a><button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></header><main id="main">${content}</main></div>${admin ? "" : `<footer class="${m.footer}"><div class="${m.shell}"><div class="${m.footerTop}"><div><p>${t("footerText")}</p></div><a href="#/brands">${t("exploreBrands")}${arrow()}</a></div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span><a href="#/admin">${t("admin")}</a></div></div></footer>`}<div class="${m.demoNotice}">${authState.mode === "demo" ? t("demo") : ""}</div>`;
 }
 
 function loading(content = t("sessionLoading")) {
@@ -87,6 +88,8 @@ export async function render(options = {}) {
     app.innerHTML = loading();
     return;
   }
+  await ensureSessionValid();
+  authState = getAuthState();
   if (!authState.session) {
     app.innerHTML = authPage(authState.mode || "unconfigured");
     bindAuth(signal);
@@ -126,6 +129,7 @@ export async function render(options = {}) {
     bindChrome(signal);
     return;
   }
+  if (!(await ensureSessionValid()) || request !== version) return;
   if (request !== version) return;
   let content;
   if (page === "offers") content = offersPage(data);
@@ -308,7 +312,7 @@ function signInErrorMessage(error) {
 
 function bindChrome(signal) {
   app.querySelector("#locale-toggle")?.addEventListener(
-    "click",
+    "clinic-locale-toggle",
     async () => {
       if (await mayLeave()) {
         setLocale(locale === "ar" ? "en" : "ar");
@@ -318,7 +322,7 @@ function bindChrome(signal) {
     { signal },
   );
   app.querySelector("#app-sign-out")?.addEventListener(
-    "click",
+    "clinic-sign-out",
     async () => {
       if (await mayLeave()) {
         await signOut();

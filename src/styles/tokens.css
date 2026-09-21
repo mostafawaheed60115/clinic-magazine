@@ -1,30 +1,31 @@
 @import "@fontsource-variable/cairo";
 @import "@fontsource-variable/manrope";
 :root {
-  --background: #fcf0fc;
-  --primary: #fac3f6;
-  --ink: #2b262b;
-  --accent: #fc9af6;
-  --blush: #ffd5d9;
-  --rose: #cc5a79;
-  --muted: #675363;
-  --paper: #fffaff;
-  --line: #e5d8e3;
-  --danger: #982544;
-  --scroll-thumb: #aa839f;
-  --scroll-track: #fcf0fc;
-  --scroll-hover: #675363;
-  --scroll-active: #2b262b;
+  /* Clinic's current identity: a calm linen field with botanical green action color. */
+  --background: #f6f1eb;
+  --primary: #75af8e;
+  --ink: #1e3328;
+  --accent: #439a62;
+  --blush: #dcebe0;
+  --rose: #2f7448;
+  --muted: #4f6558;
+  --paper: #fffdf9;
+  --line: #d4ded6;
+  --danger: #963f45;
+  --scroll-thumb: #75af8e;
+  --scroll-track: #f3efe6;
+  --scroll-hover: #439a62;
+  --scroll-active: #1e3328;
   --radius: 16px;
-  --danger-hover: #73203b;
-  --primary-hover: #51414f;
-  --pink-text: #574150;
-  --inactive: #bba4b7;
-  --footer-line: #5c4e5b;
+  --danger-hover: #713136;
+  --primary-hover: #2f7448;
+  --pink-text: #1e3328;
+  --inactive: #96a39a;
+  --footer-line: #3f5a49;
   --white: #ffffff;
-  --cover-shadow: #aa739012;
-  --toast-shadow: #2b262b26;
-  --dialog-shadow: #2b262b33;
+  --cover-shadow: #439a6226;
+  --toast-shadow: #1e332826;
+  --dialog-shadow: #1e332833;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   font-family: "Manrope Variable", sans-serif;
   color: var(--ink);
@@ -132,7 +133,7 @@ p {
 }
 input,
 textarea {
-  caret-color: var(--rose);
+  caret-color: var(--accent);
 }
 textarea {
   resize: none;
@@ -166,7 +167,7 @@ main {
   min-height: 60vh;
 }
 dialog::backdrop {
-  background: rgb(43 38 43 / 0.4);
+  background: rgb(30 51 40 / 0.42);
 }
 @media (prefers-reduced-motion: reduce) {
   *,

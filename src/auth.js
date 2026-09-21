@@ -13,6 +13,8 @@ const mode = demoEnabled
 const configured = mode !== "unconfigured";
 const demoSessionKey = "clinic-demo-session";
 const demoUsersKey = "clinic-demo-users";
+const sessionStartedKey = "clinic-session-started-at";
+export const SESSION_MAX_AGE_MS = 21 * 24 * 60 * 60 * 1000;
 const demoPasswords = {
   demo: "bbfeb74a4b4216dfd0f7b10edf5743e6781e9f8ac7888a3392878a52c821a3b1",
   admin: "bbfeb74a4b4216dfd0f7b10edf5743e6781e9f8ac7888a3392878a52c821a3b1",
@@ -31,10 +33,12 @@ let state = {
 let initPromise;
 let authSubscription;
 let authEpoch = 0;
+let sessionExpiryTimer;
 const listeners = new Set();
 
 const snapshot = () => ({ ...state });
 const emit = () => {
+  scheduleSessionExpiry();
   const value = snapshot();
   // Supabase warns against awaiting work from inside onAuthStateChange. All
   // listeners run on a later task, after that callback has returned.
@@ -66,6 +70,80 @@ function authError(message, code = "auth") {
   const error = new Error(message);
   error.code = code;
   return error;
+}
+
+function sessionExpired() {
+  const startedAt = Number(localStorage.getItem(sessionStartedKey));
+  return (
+    Number.isFinite(startedAt) &&
+    startedAt > 0 &&
+    Date.now() - startedAt >= SESSION_MAX_AGE_MS
+  );
+}
+
+function markSessionStarted() {
+  if (!localStorage.getItem(sessionStartedKey)) {
+    localStorage.setItem(sessionStartedKey, String(Date.now()));
+  }
+}
+
+function clearSessionStarted() {
+  localStorage.removeItem(sessionStartedKey);
+}
+
+function scheduleSessionExpiry() {
+  clearTimeout(sessionExpiryTimer);
+  sessionExpiryTimer = undefined;
+  if (!state.session) return;
+  const startedAt = Number(localStorage.getItem(sessionStartedKey));
+  if (!Number.isFinite(startedAt) || startedAt <= 0) return;
+  const remaining = startedAt + SESSION_MAX_AGE_MS - Date.now();
+  sessionExpiryTimer = setTimeout(
+    () => {
+      void ensureSessionValid();
+    },
+    Math.max(0, remaining),
+  );
+}
+
+async function expireSession() {
+  if (!state.session || !sessionExpired()) return false;
+  if (mode === "supabase")
+    await getSupabase()
+      .auth.signOut()
+      .catch(() => {});
+  if (mode === "demo") localStorage.removeItem(demoSessionKey);
+  clearSessionStarted();
+  clearState(authError("Your session has expired", "session_expired"));
+  emit();
+  return true;
+}
+
+// This timestamp is a client-side UX guard for stale open tabs. Supabase
+// remains the backend authority for authenticated requests and authorization.
+export async function ensureSessionValid() {
+  await initAuth();
+  await expireSession();
+  return state.session;
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key === sessionStartedKey) {
+      scheduleSessionExpiry();
+      void ensureSessionValid();
+    }
+    if (
+      mode === "demo" &&
+      event.key === demoSessionKey &&
+      !event.newValue &&
+      state.session
+    ) {
+      clearState();
+      emit();
+    }
+  });
+  window.addEventListener("focus", () => void ensureSessionValid());
 }
 
 function adminResponse(data, key) {
@@ -136,6 +214,7 @@ function setDemoState(record) {
     error: null,
   };
   localStorage.setItem(demoSessionKey, JSON.stringify({ id: user.id }));
+  markSessionStarted();
 }
 
 function clearState(error = null) {
@@ -185,6 +264,11 @@ async function initialize() {
     const saved = localStorage.getItem(demoSessionKey);
     if (saved) {
       try {
+        if (sessionExpired()) {
+          localStorage.removeItem(demoSessionKey);
+          clearSessionStarted();
+          throw new Error("expired");
+        }
         const { id } = JSON.parse(saved);
         const record = demoUserRecords().find(
           (item) => item.id === id && item.active,
@@ -208,7 +292,16 @@ async function initialize() {
       session: data.session,
       user: data.session?.user || null,
     };
-    if (data.session?.user) await loadSupabaseProfile(data.session.user);
+    if (data.session?.user) {
+      if (sessionExpired()) {
+        await client.auth.signOut();
+        clearSessionStarted();
+        clearState(authError("Your session has expired", "session_expired"));
+      } else {
+        markSessionStarted();
+        await loadSupabaseProfile(data.session.user);
+      }
+    }
   } catch (error) {
     await client.auth.signOut().catch(() => {});
     clearState(error);
@@ -227,8 +320,21 @@ async function initialize() {
             user: session?.user || null,
             error: null,
           };
-          if (session?.user) await loadSupabaseProfile(session.user);
-          else clearState();
+          if (session?.user) {
+            if (sessionExpired()) {
+              await client.auth.signOut();
+              clearSessionStarted();
+              clearState(
+                authError("Your session has expired", "session_expired"),
+              );
+            } else {
+              markSessionStarted();
+              await loadSupabaseProfile(session.user);
+            }
+          } else {
+            clearSessionStarted();
+            clearState();
+          }
           if (callbackEpoch !== authEpoch) return;
         } catch (error) {
           if (callbackEpoch !== authEpoch) return;
@@ -288,12 +394,16 @@ export async function signIn(usernameInput, password) {
   if (error) throw error;
   state = { ...state, session: data.session, user: data.user };
   try {
-    if (data.user) await loadSupabaseProfile(data.user);
+    if (data.user) {
+      markSessionStarted();
+      await loadSupabaseProfile(data.user);
+    }
   } catch (profileError) {
     await getSupabase()
       .auth.signOut()
       .catch(() => {});
     clearState(profileError);
+    clearSessionStarted();
     throw profileError;
   }
   state = { ...state, ready: true };
@@ -305,6 +415,7 @@ export async function signOut() {
   await initAuth();
   if (mode === "demo") {
     localStorage.removeItem(demoSessionKey);
+    clearSessionStarted();
     clearState();
     emit();
     return;
@@ -315,11 +426,14 @@ export async function signOut() {
     if (error) throw error;
   }
   clearState();
+  clearSessionStarted();
   emit();
 }
 
 export async function loadUsers() {
   await initAuth();
+  if (!(await ensureSessionValid()))
+    throw authError("Your session has expired", "session_expired");
   if (!state.isAdmin)
     throw authError("Administrator access required", "forbidden");
   if (mode === "demo") return demoUserRecords().map(publicUser);
@@ -339,6 +453,8 @@ export async function loadUsers() {
 
 export async function createUser({ name, user, password, phone = "" }) {
   await initAuth();
+  if (!(await ensureSessionValid()))
+    throw authError("Your session has expired", "session_expired");
   if (!state.isAdmin)
     throw authError("Administrator access required", "forbidden");
   const username = normalizeUsername(user);
@@ -372,6 +488,8 @@ export async function createUser({ name, user, password, phone = "" }) {
 
 export async function updateUser(id, updates = {}) {
   await initAuth();
+  if (!(await ensureSessionValid()))
+    throw authError("Your session has expired", "session_expired");
   if (!state.isAdmin)
     throw authError("Administrator access required", "forbidden");
   if (mode === "demo") {

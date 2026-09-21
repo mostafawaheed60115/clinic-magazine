@@ -1,10 +1,10 @@
 # Asset provenance
 
-Original logo and six-color palette: supplied by the user in `assets/` and preserved unchanged.
+Original logo and current five-color green/linen palette: supplied by the user in `assets/` and preserved unchanged.
 
-Refined SVG symbol and logo: authored for this project, preserving the original face and heartbeat idea in pink/charcoal. `public/assets/clinic-symbol.svg` is a path-based symbol; `clinic-logo.svg` includes an editable wordmark. The website uses self-hosted Manrope for the matching wordmark.
+Refined SVG symbol and logo: authored for this project, preserving the original face and heartbeat idea. The website now uses the supplied transparent raster logo directly; the authored SVG files remain available for future export needs.
 
-`public/assets/new_logo.png` is retained as an alternate supplied logo artwork; the interface uses the optimized SVG mark for crisp responsive rendering.
+`public/assets/clinic-logo-transparent.png` is the supplied transparent logo used by the interface and favicon.
 
 Fonts: Cairo Variable and Manrope Variable, self-hosted through their Fontsource npm packages; their licenses are included in the installed packages.
 
