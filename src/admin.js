@@ -17,7 +17,12 @@ import {
 } from "./ui.js";
 import { collections, saveItem, deleteItem, resetStore } from "./store.js";
 import { loadUsers, createUser, updateUser, signOut } from "./auth.js";
-import { prepareImage, uploadImage, releaseImage } from "./upload.js";
+import {
+  prepareImage,
+  uploadImage,
+  releaseImage,
+  scheduleManagedImageCleanup,
+} from "./upload.js";
 import { notFound } from "./pages.js";
 import a from "./styles/admin.module.css";
 
@@ -208,8 +213,40 @@ function bindEditor(root, form, data, context) {
     c === "companies" ? "logo_url" : c === "products" ? "img_url" : "img_link";
   let chosenImage = item[imgKey] || "";
   let prepared = null;
+  let uploadedImage = null;
+  let prepareController = null;
+  let imageGeneration = 0;
+  let catalogWriteAttempted = false;
   let imageIssue = false;
   let imagePending = false;
+  const releasePrepared = () => {
+    if (prepared) releaseImage(prepared);
+    prepared = null;
+  };
+  const clearImageChoice = () => {
+    imageGeneration += 1;
+    prepareController?.abort();
+    prepareController = null;
+    releasePrepared();
+    uploadedImage = null;
+    imagePending = false;
+  };
+  const cleanupPendingUpload = () => {
+    imageGeneration += 1;
+    prepareController?.abort();
+    prepareController = null;
+    releasePrepared();
+    // A save request can still commit after navigation starts. Let its
+    // reference remain discoverable instead of deleting during that window.
+    if (
+      form.dataset.busy !== "true" &&
+      !catalogWriteAttempted &&
+      uploadedImage?.url
+    )
+      scheduleManagedImageCleanup(uploadedImage.url);
+    uploadedImage = null;
+  };
+  signal.addEventListener("abort", cleanupPendingUpload, { once: true });
   form.addEventListener(
     "input",
     () => {
@@ -226,12 +263,15 @@ function bindEditor(root, form, data, context) {
   form.elements.image_url.addEventListener(
     "change",
     () => {
+      clearImageChoice();
       const value = safeExternalUrl(form.elements.image_url.value.trim());
       if (value) {
         chosenImage = value;
         root.querySelector(`.${a.preview}`).src = value;
         form.querySelector("#field-image-file").value = "";
         imageIssue = false;
+      } else {
+        chosenImage = "";
       }
     },
     { signal },
@@ -243,18 +283,33 @@ function bindEditor(root, form, data, context) {
       const input = event.target;
       const file = input.files[0];
       if (!file) return;
+      clearImageChoice();
+      const generation = imageGeneration;
+      const preparation = new AbortController();
+      prepareController = preparation;
       imagePending = true;
       imageIssue = false;
       root.querySelector("#field-image-file-error").textContent = "";
       try {
-        prepared = await prepareImage(file);
+        const nextPrepared = await prepareImage(file, {
+          signal: preparation.signal,
+        });
+        if (generation !== imageGeneration) {
+          releaseImage(nextPrepared);
+          return;
+        }
+        prepared = nextPrepared;
+        chosenImage = "";
         root.querySelector(`.${a.preview}`).src = prepared.previewUrl;
         form.elements.image_url.value = "";
       } catch {
-        imageIssue = true;
-        showError(input, t("invalidImage"));
+        if (generation === imageGeneration) {
+          imageIssue = true;
+          showError(input, t("invalidImage"));
+        }
       } finally {
-        imagePending = false;
+        if (prepareController === preparation) prepareController = null;
+        if (generation === imageGeneration) imagePending = false;
       }
     },
     { signal },
@@ -336,25 +391,49 @@ function bindEditor(root, form, data, context) {
       submit.disabled = true;
       submit.setAttribute("aria-busy", "true");
       const original = submit.innerHTML;
+      // Freeze the submitted image choice until its upload and write settle.
+      const controls = [...form.elements].map((field) => [
+        field,
+        field.disabled,
+      ]);
+      controls.forEach(([field]) => {
+        field.disabled = true;
+      });
       try {
         if (prepared) {
-          submit.textContent = t("uploading");
-          const uploaded = await uploadImage(prepared, {
-            onProgress: (value) => {
-              submit.textContent = `${t("uploading")} ${Math.round(value)}%`;
-            },
-          });
-          record[imgKey] = uploaded.url;
+          if (!uploadedImage) {
+            submit.textContent = t("uploading");
+            uploadedImage = await uploadImage(prepared, {
+              signal,
+              onProgress: (value) => {
+                submit.textContent =
+                  value > 0 && value < 1
+                    ? `${t("uploading")} ${Math.round(value * 100)}%`
+                    : t("uploading");
+              },
+            });
+          }
+          record[imgKey] = uploadedImage.url;
         }
+        if (signal.aborted) {
+          const cancelled = new Error("Upload cancelled");
+          cancelled.code = "aborted";
+          throw cancelled;
+        }
+        catalogWriteAttempted = true;
+        submit.textContent = t("saving");
         await saveItem(c, record, Number(form.dataset.revision));
+        if (signal.aborted) return;
         dirty = false;
-        if (prepared) {
-          releaseImage(prepared);
-          prepared = null;
-        }
+        releasePrepared();
+        uploadedImage = null;
         notify(t("saved"));
         navigate(`#/admin/${c}`);
       } catch (error) {
+        if (signal.aborted) return;
+        controls.forEach(([field, disabled]) => {
+          field.disabled = disabled;
+        });
         root.querySelector("#form-error").textContent = errorMessage(error);
         submit.disabled = false;
         submit.removeAttribute("aria-busy");

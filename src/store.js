@@ -1,4 +1,4 @@
-import { ensureSessionValid, isDemoMode } from "./auth.js";
+import { ensureSessionValid, getAuthState, isDemoMode } from "./auth.js";
 import * as demoStore from "./demo-store.js";
 import {
   cloudConfigured,
@@ -13,6 +13,24 @@ export { isDemoMode };
 export const openStore = demoStore.openStore;
 
 const hasCloudConfig = () => cloudConfigured;
+const CACHE_TTL_MS = 30_000;
+let catalogCache = null;
+let catalogRead = null;
+let cacheGeneration = 0;
+
+function catalogIdentity() {
+  const state = getAuthState();
+  return `${state.mode}:${state.session?.user?.id || state.user?.id || ""}`;
+}
+
+export function invalidateCatalogCache() {
+  cacheGeneration += 1;
+  catalogCache = null;
+  // An old request may still complete. Its generation check prevents it from
+  // repopulating the cache after a write or auth transition.
+  catalogRead = null;
+}
+
 const unconfigured = () => {
   const error = new Error("Catalog storage is not configured");
   error.code = "unconfigured";
@@ -26,33 +44,72 @@ async function requireSession() {
   throw error;
 }
 
-export async function readAll() {
+export async function readAll({ force = false } = {}) {
   await requireSession();
-  if (isDemoMode()) return demoStore.readAll();
-  if (!hasCloudConfig()) throw unconfigured();
-  return readCatalog();
+  const identity = catalogIdentity();
+  const now = Date.now();
+  if (
+    !force &&
+    catalogCache?.identity === identity &&
+    catalogCache.expiresAt > now
+  )
+    return catalogCache.data;
+  const generation = cacheGeneration;
+  if (!force && catalogRead?.identity === identity) return catalogRead.promise;
+  const promise = (
+    isDemoMode()
+      ? demoStore.readAll()
+      : hasCloudConfig()
+        ? readCatalog()
+        : Promise.reject(unconfigured())
+  ).then((data) => {
+    if (generation === cacheGeneration && identity === catalogIdentity()) {
+      catalogCache = { data, identity, expiresAt: Date.now() + CACHE_TTL_MS };
+    }
+    return data;
+  });
+  catalogRead = { identity, generation, promise };
+  promise
+    .then(undefined, () => {})
+    .then(() => {
+      if (catalogRead?.promise === promise) catalogRead = null;
+    });
+  return promise;
 }
 
 export async function saveItem(collection, item, expectedRevision) {
   await requireSession();
-  if (isDemoMode())
-    return demoStore.saveItem(collection, item, expectedRevision);
+  if (isDemoMode()) {
+    const saved = await demoStore.saveItem(collection, item, expectedRevision);
+    invalidateCatalogCache();
+    return saved;
+  }
   if (!hasCloudConfig()) throw unconfigured();
   const saved = await saveCatalogItem(collection, item, expectedRevision);
+  invalidateCatalogCache();
   channel?.postMessage("updated");
   return saved;
 }
 
 export async function deleteItem(collection, id, revision) {
   await requireSession();
-  if (isDemoMode()) return demoStore.deleteItem(collection, id, revision);
+  if (isDemoMode()) {
+    await demoStore.deleteItem(collection, id, revision);
+    invalidateCatalogCache();
+    return;
+  }
   if (!hasCloudConfig()) throw unconfigured();
   await deleteCatalogItem(collection, id, revision);
+  invalidateCatalogCache();
   channel?.postMessage("updated");
 }
 
 export async function resetStore() {
   await requireSession();
-  if (isDemoMode()) return demoStore.resetStore();
+  if (isDemoMode()) {
+    await demoStore.resetStore();
+    invalidateCatalogCache();
+    return;
+  }
   throw new Error("Reset is available only in demo mode");
 }

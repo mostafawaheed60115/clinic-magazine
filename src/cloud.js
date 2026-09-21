@@ -124,6 +124,43 @@ function requireClient() {
   return supabase;
 }
 
+/**
+ * Return a storage key only for files owned by this project's image bucket.
+ * External URLs and malformed values are intentionally ignored so cleanup can
+ * never remove a shared or user supplied image.
+ */
+export function managedImageKey(value) {
+  if (!value || !supabaseUrl) return null;
+  try {
+    const url = new URL(value);
+    const projectOrigin = new URL(supabaseUrl).origin;
+    const prefix = `/storage/v1/object/public/${IMAGE_BUCKET}/`;
+    if (url.origin !== projectOrigin || !url.pathname.startsWith(prefix))
+      return null;
+    const key = decodeURIComponent(url.pathname.slice(prefix.length));
+    if (!key.startsWith("clinic/") || key.includes("..")) return null;
+    return key;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Clean an object that has just been uploaded and has never been part of a
+ * catalog write. Callers use this only for abandoned uploads, so committed
+ * replacement/deletion GC stays server-side and race-free.
+ */
+export async function cleanupFreshManagedImage(value, client = supabase) {
+  const key = managedImageKey(value);
+  if (!key || !client) return false;
+  try {
+    const { error } = await client.storage.from(IMAGE_BUCKET).remove([key]);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
 function toDatabase(collection, item) {
   if (!columns[collection])
     throw new Error(`Unknown collection: ${collection}`);

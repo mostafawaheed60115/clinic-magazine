@@ -1,6 +1,6 @@
 import "./styles/tokens.css";
 import { t, locale, setLocale, initLocale } from "./i18n.js";
-import { readAll, channel } from "./store.js";
+import { readAll, channel, invalidateCatalogCache } from "./store.js";
 import {
   getAuthState,
   initAuth,
@@ -55,11 +55,11 @@ function getRoute() {
   };
 }
 
-function chrome(route, content) {
+function chrome(route, content, options = {}) {
   const current = route.parts[0];
   const direction = locale === "ar" ? "rtl" : "ltr";
   const admin = current === "admin";
-  return `<a class="${m.skip}" href="#main">${t("skip")}</a><div class="${m.shell}"><header class="${m.header}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="92" height="92" /></a>${admin ? `<span class="${m.adminCrumb}">${t("admin")}</span>` : `<nav class="${m.nav}" dir="${direction}" aria-label="${t("browse")}"><a href="#/offers" ${current === "offers" ? 'aria-current="page"' : ""}>${t("offers")}</a><a href="#/brands" ${["brands", "brand", "product"].includes(current) ? 'aria-current="page"' : ""}>${t("brands")}</a></nav>`}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a><button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></header><main id="main">${content}</main></div>${admin ? "" : `<footer class="${m.footer}"><div class="${m.shell}"><div class="${m.footerTop}"><div><p>${t("footerText")}</p></div><a href="#/brands">${t("exploreBrands")}${arrow()}</a></div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span><a href="#/admin">${t("admin")}</a></div></div></footer>`}<div class="${m.demoNotice}">${authState.mode === "demo" ? t("demo") : ""}</div>`;
+  return `<a class="${m.skip}" href="#main">${t("skip")}</a><div class="${m.shell} ${options.keepSearch ? m.searchRender : ""}"><header class="${m.header}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="92" height="92" /></a>${admin ? `<span class="${m.adminCrumb}">${t("admin")}</span>` : `<nav class="${m.nav}" dir="${direction}" aria-label="${t("browse")}"><a href="#/offers" ${current === "offers" ? 'aria-current="page"' : ""}>${t("offers")}</a><a href="#/brands" ${["brands", "brand", "product"].includes(current) ? 'aria-current="page"' : ""}>${t("brands")}</a></nav>`}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a><button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></header><main id="main">${content}</main></div>${admin ? "" : `<footer class="${m.footer}"><div class="${m.shell}"><div class="${m.footerTop}"><div><p>${t("footerText")}</p></div><a href="#/brands">${t("exploreBrands")}${arrow()}</a></div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span><a href="#/admin">${t("admin")}</a></div></div></footer>`}<div class="${m.demoNotice}">${authState.mode === "demo" ? t("demo") : ""}</div>`;
 }
 
 function loading(content = t("sessionLoading")) {
@@ -141,7 +141,7 @@ export async function render(options = {}) {
   else if (page === "product") content = productPage(data, route);
   else if (page === "admin") content = adminPage(data, route, authState);
   else content = notFound();
-  app.innerHTML = chrome(route, content);
+  app.innerHTML = chrome(route, content, options);
   activeHash = location.hash || "#/offers";
   hydrateImages(app);
   bindChrome(signal);
@@ -288,6 +288,7 @@ function bindAuth(signal) {
         authState = getAuthState();
         if (authState.session) {
           cachedData = null;
+          invalidateCatalogCache();
           await render();
         } else error.textContent = t("wrongCredentials");
       } catch (signInError) {
@@ -330,6 +331,7 @@ function bindChrome(signal) {
       if (await mayLeave()) {
         await signOut();
         cachedData = null;
+        invalidateCatalogCache();
         render();
       }
     },
@@ -371,6 +373,7 @@ window.addEventListener("beforeunload", (event) => {
   }
 });
 channel?.addEventListener("message", () => {
+  invalidateCatalogCache();
   if (isDirty()) notify(t("updateNotice"));
   else render();
 });
@@ -378,6 +381,7 @@ onAuthChange((next) => {
   const nextIdentity = next?.session?.user?.id || next?.user?.id || "";
   if (nextIdentity !== authIdentity) {
     cachedData = null;
+    invalidateCatalogCache();
     if (authState) authState.users = undefined;
   }
   authIdentity = nextIdentity;

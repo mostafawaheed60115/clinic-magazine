@@ -1,10 +1,16 @@
-import { cloudConfigured, getSupabase, IMAGE_BUCKET } from "./cloud.js";
+import {
+  cleanupFreshManagedImage,
+  cloudConfigured,
+  getSupabase,
+  IMAGE_BUCKET,
+} from "./cloud.js";
 import { isDemoMode } from "./auth.js";
 
 const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 const MAX_OUTPUT_BYTES = 5 * 1024 * 1024;
 const MAX_DIMENSION = 2048;
 const MAX_PIXELS = 25_000_000;
+const UPLOAD_TIMEOUT_MS = 30_000;
 const ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const uploadError = (message, code = "upload") => {
@@ -21,13 +27,18 @@ async function decode(file, signal) {
   assertActive(signal);
   if (typeof createImageBitmap === "function") {
     const bitmap = await createImageBitmap(file);
-    assertActive(signal);
-    return {
-      source: bitmap,
-      width: bitmap.width,
-      height: bitmap.height,
-      close: () => bitmap.close(),
-    };
+    try {
+      assertActive(signal);
+      return {
+        source: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        close: () => bitmap.close(),
+      };
+    } catch (error) {
+      bitmap.close();
+      throw error;
+    }
   }
   const sourceUrl = URL.createObjectURL(file);
   try {
@@ -126,6 +137,15 @@ export function releaseImage(prepared) {
   if (prepared?.previewUrl) URL.revokeObjectURL(prepared.previewUrl);
 }
 
+/** Give an uncertain upload time to finish before removing a fresh object. */
+export function scheduleManagedImageCleanup(url, delay = 5_000) {
+  if (!url) return () => {};
+  const timer = setTimeout(() => {
+    cleanupFreshManagedImage(url).catch(() => {});
+  }, delay);
+  return () => clearTimeout(timer);
+}
+
 function uploadDemo(prepared, { signal, onProgress } = {}) {
   assertActive(signal);
   return blobAsDataUrl(prepared.blob).then((url) => {
@@ -135,39 +155,83 @@ function uploadDemo(prepared, { signal, onProgress } = {}) {
   });
 }
 
-export async function uploadImage(prepared, { signal, onProgress } = {}) {
+export async function uploadImage(
+  prepared,
+  { signal, onProgress, storageClient, timeoutMs = UPLOAD_TIMEOUT_MS } = {},
+) {
   if (!prepared?.blob || prepared.blob.type !== "image/webp")
     throw uploadError("A prepared WebP image is required", "invalid_image");
-  if (isDemoMode()) return uploadDemo(prepared, { signal, onProgress });
+  if (isDemoMode() && !storageClient)
+    return uploadDemo(prepared, { signal, onProgress });
   if (!cloudConfigured)
     throw uploadError("Image uploads are not configured", "unconfigured");
   assertActive(signal);
-  const client = getSupabase();
+  const client = storageClient || getSupabase();
   if (signal?.aborted) throw uploadError("Upload cancelled", "aborted");
   onProgress?.(0);
   const key = `clinic/${crypto.randomUUID()}.webp`;
-  const { error } = await client.storage
+  const { data: publicData } = client.storage
     .from(IMAGE_BUCKET)
-    .upload(key, prepared.blob, {
-      cacheControl: "31536000",
-      contentType: "image/webp",
-      upsert: false,
+    .getPublicUrl(key);
+  const publicUrl = publicData?.publicUrl || "";
+  let timeout;
+  let removeAbort;
+  let uploadPromise;
+  try {
+    uploadPromise = client.storage
+      .from(IMAGE_BUCKET)
+      .upload(key, prepared.blob, {
+        cacheControl: "31536000",
+        contentType: "image/webp",
+        upsert: false,
+      });
+    const cancellation = new Promise((_, reject) => {
+      timeout = setTimeout(
+        () => reject(uploadError("Image upload timed out", "timeout")),
+        timeoutMs,
+      );
+      if (!signal) return;
+      const onAbort = () => reject(uploadError("Upload cancelled", "aborted"));
+      signal.addEventListener("abort", onAbort, { once: true });
+      removeAbort = () => signal.removeEventListener("abort", onAbort);
     });
-  if (error) {
-    const code = /bucket|not found|configured/i.test(error.message || "")
-      ? "storage_not_configured"
-      : "storage_upload_failed";
-    throw uploadError(error.message || "Image upload failed", code);
+    const { error } = await Promise.race([uploadPromise, cancellation]);
+    if (error) {
+      const code = /bucket|not found|configured/i.test(error.message || "")
+        ? "storage_not_configured"
+        : "storage_upload_failed";
+      throw uploadError(error.message || "Image upload failed", code);
+    }
+    assertActive(signal);
+    if (!publicUrl)
+      throw uploadError(
+        "Storage did not return a public image URL",
+        "storage_upload_failed",
+      );
+    onProgress?.(1);
+    return { url: publicUrl, key };
+  } catch (error) {
+    // Storage requests may finish server side after a timeout or abort. Clean
+    // only after it settles: this rejected upload was never returned to a save.
+    if (publicUrl) {
+      error.storageKey = key;
+      error.storageUrl = publicUrl;
+      uploadPromise?.then(
+        () => cleanupFreshManagedImage(publicUrl, client),
+        () => {},
+      );
+    }
+    throw error;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+    removeAbort?.();
   }
-  assertActive(signal);
-  const { data } = client.storage.from(IMAGE_BUCKET).getPublicUrl(key);
-  if (!data?.publicUrl)
-    throw uploadError(
-      "Storage did not return a public image URL",
-      "storage_upload_failed",
-    );
-  onProgress?.(1);
-  return { url: data.publicUrl, key };
 }
 
-export { MAX_INPUT_BYTES, MAX_OUTPUT_BYTES, MAX_DIMENSION, MAX_PIXELS };
+export {
+  MAX_INPUT_BYTES,
+  MAX_OUTPUT_BYTES,
+  MAX_DIMENSION,
+  MAX_PIXELS,
+  UPLOAD_TIMEOUT_MS,
+};

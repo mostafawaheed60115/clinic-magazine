@@ -101,6 +101,13 @@
   padding-block: 50px 30px;
   animation: introReveal 0.65s var(--ease) both;
 }
+.searchRender .intro,
+.searchRender .product,
+.searchRender .section,
+.searchRender .slideIn .coverVisual img,
+.searchRender .slideIn .coverCopy {
+  animation: none;
+}
 .intro h1 {
   font-size: clamp(32px, 3.5vw, 50px);
   font-weight: 600;
@@ -1030,8 +1037,8 @@
   display: grid;
   gap: 8px;
 }
-.loginField > .error:empty,
-.loginForm > .error:empty {
+.loginField > .loginError:empty,
+.loginForm > .loginError:empty {
   display: none;
 }
 .loginLabelRow {
@@ -1046,10 +1053,11 @@
 }
 .loginLabelRow span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .loginField input {
   width: 100%;
+  font-size: 16px;
   min-height: 56px;
   padding: 14px 16px;
   border: 1px solid var(--line);
@@ -1093,7 +1101,10 @@
   padding-top: 18px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
+}
+.loginError:empty {
+  display: none;
 }
 .adminCrumb {
   color: var(--muted);

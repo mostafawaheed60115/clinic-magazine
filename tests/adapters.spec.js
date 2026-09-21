@@ -1,6 +1,49 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("client adapters", () => {
+  test("timed-out uploads clean up only after late completion", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const result = await page.evaluate(async () => {
+      const { uploadImage } = await import("/src/upload.js");
+      let finish;
+      const removed = [];
+      const pending = new Promise((resolve) => {
+        finish = resolve;
+      });
+      const storageClient = {
+        storage: {
+          from: () => ({
+            upload: () => pending,
+            getPublicUrl: (key) => ({
+              data: {
+                publicUrl: `https://twllyczdtmitsupfvjgx.supabase.co/storage/v1/object/public/clinic-images/${key}`,
+              },
+            }),
+            remove: async (keys) => {
+              removed.push(...keys);
+              return { error: null };
+            },
+          }),
+        },
+      };
+      let code;
+      try {
+        await uploadImage(
+          { blob: new Blob(["test"], { type: "image/webp" }) },
+          { storageClient, timeoutMs: 10 },
+        );
+      } catch (error) {
+        code = error.code;
+      }
+      const before = removed.length;
+      finish({ error: null });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return { code, before, after: removed.length };
+    });
+    expect(result).toEqual({ code: "timeout", before: 0, after: 1 });
+  });
   test("demo authentication survives refresh without storing a password", async ({
     page,
   }) => {
@@ -74,5 +117,48 @@ test.describe("client adapters", () => {
       }
     });
     expect(message).toBe("invalid_type");
+  });
+
+  test("catalog cache invalidates after a same-tab write", async ({ page }) => {
+    await page.goto("/");
+    const result = await page.evaluate(async () => {
+      const auth = await import("/src/auth.js");
+      const store = await import("/src/store.js");
+      await auth.signIn("demo", "clinic");
+      const before = await store.readAll();
+      const item = before.companies[0];
+      const marker = `cache-${Date.now()}`;
+      await store.saveItem(
+        "companies",
+        { ...item, name_en: marker, name_ar: marker },
+        item.revision,
+      );
+      const after = await store.readAll();
+      return after.companies.some(
+        (company) => company.id === item.id && company.name_en === marker,
+      );
+    });
+    expect(result).toBe(true);
+  });
+
+  test("managed image cleanup accepts only this bucket", async ({ page }) => {
+    await page.goto("/");
+    const result = await page.evaluate(async () => {
+      const { managedImageKey } = await import("/src/cloud.js");
+      return {
+        owned: managedImageKey(
+          "https://twllyczdtmitsupfvjgx.supabase.co/storage/v1/object/public/clinic-images/clinic/test.webp",
+        ),
+        external: managedImageKey("https://example.com/clinic/test.webp"),
+        traversal: managedImageKey(
+          "https://twllyczdtmitsupfvjgx.supabase.co/storage/v1/object/public/clinic-images/clinic/%2e%2e%2fother.webp",
+        ),
+      };
+    });
+    expect(result).toEqual({
+      owned: "clinic/test.webp",
+      external: null,
+      traversal: null,
+    });
   });
 });
