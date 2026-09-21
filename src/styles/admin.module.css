@@ -191,6 +191,14 @@
   color: var(--muted);
   font-size: 12px;
 }
+.adminAuthFootnote .novaAttribution {
+  margin-top: 14px;
+  color: var(--ink);
+  font-size: 11px;
+}
+.adminAuthFootnote .novaPhone {
+  color: var(--muted) !important;
+}
 @keyframes adminAuthEnter {
   from {
     opacity: 0;

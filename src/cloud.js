@@ -196,7 +196,7 @@ async function readCollection(collection) {
       );
     const { data, error } = await client
       .from(collection)
-      .select("*")
+      .select(columns[collection].join(", "))
       .order("name_en", { ascending: true, nullsFirst: false })
       .order("id", { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);

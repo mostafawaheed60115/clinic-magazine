@@ -4,18 +4,26 @@
   padding-inline: clamp(20px, 4.3vw, 64px);
 }
 .header {
-  height: 106px;
+  width: 100%;
+  min-height: 106px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  background: rgb(255 253 249 / 0.88);
+  backdrop-filter: blur(14px);
+  transition:
+    background 0.3s var(--ease),
+    border-color 0.3s var(--ease);
+}
+.headerInner {
+  width: min(100%, 1440px);
+  margin-inline: auto;
+  padding-inline: clamp(20px, 4.3vw, 64px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
   direction: ltr;
-  border-bottom: 1px solid var(--line);
-  background: rgb(255 253 249 / 0.72);
-  backdrop-filter: blur(14px);
-  transition:
-    background 0.3s var(--ease),
-    border-color 0.3s var(--ease);
 }
 .logo {
   display: flex;
@@ -453,6 +461,11 @@
   padding-block: 45px 24px;
   margin-top: 60px;
 }
+.footerInner {
+  width: min(100%, 1440px);
+  margin-inline: auto;
+  padding-inline: clamp(20px, 4.3vw, 64px);
+}
 .footerTop {
   display: flex;
   align-items: center;
@@ -466,8 +479,41 @@
 }
 .footer p {
   font-size: 12px;
-  color: var(--primary);
+  color: var(--white);
+  font-weight: 800;
   margin-top: 9px;
+}
+.novaAttribution {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 16px;
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+}
+.novaAttribution > div {
+  display: grid;
+  gap: 2px;
+}
+.novaAttribution a {
+  color: inherit;
+}
+.novaAttribution a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.novaPhone {
+  color: var(--surface-strong) !important;
+  font-size: 11px;
+  font-weight: 600;
+}
+.novaLogo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--white);
 }
 .footerBottom {
   border-top: 1px solid var(--footer-line);
@@ -726,8 +772,9 @@
     padding-inline: 20px;
   }
   .header {
-    height: auto;
     min-height: 118px;
+  }
+  .headerInner {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 12px;
@@ -996,8 +1043,15 @@
   animation: loginReveal 0.7s var(--ease) both;
 }
 .loginPanel h1 {
-  font-size: clamp(34px, 4.4vw, 54px);
+  font-size: clamp(26px, 7.4vw, 46px);
   line-height: 1.2;
+  letter-spacing: -0.04em;
+  text-wrap: nowrap;
+}
+html[lang="ar"] .loginPanel h1 {
+  letter-spacing: 0;
+  text-wrap: balance;
+  white-space: normal;
 }
 @keyframes loginReveal {
   from {
@@ -1102,6 +1156,14 @@
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 12px;
+}
+.loginFooter .novaAttribution {
+  margin-top: 0;
+  color: var(--ink);
+  font-size: 11px;
+}
+.loginFooter .novaPhone {
+  color: var(--muted) !important;
 }
 .loginError:empty {
   display: none;
@@ -1216,7 +1278,10 @@
   }
   .header {
     min-height: 108px;
+  }
+  .headerInner {
     padding-block: 14px 12px;
+    padding-inline: 16px;
   }
   .logo img {
     width: 54px;

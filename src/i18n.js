@@ -70,7 +70,9 @@ const ar = {
   loginTitle: "مرحبًا بك في Clinic",
   loginText: "سجّل الدخول لاستكشاف أحدث العروض والمنتجات.",
   loginPasswordHint: "استخدم بيانات Clinic الخاصة بك",
-  loginFootnote: "هل تحتاج إلى حساب؟ تواصل مع مسؤول Clinic.",
+  loginFootnote: "هل تحتاج إلى حساب؟ تواصل عبر: 01055217216",
+  novaCredit: "Made by Nova Solutions",
+  novaPhone: "contact: 01509999283",
   adminLoginTitle: "دخول لوحة الإدارة",
   adminLoginText:
     "أدِر العروض والعلامات التجارية والمنتجات من مساحة Clinic الداخلية.",
@@ -235,7 +237,9 @@ const en = {
   loginTitle: "Welcome to Clinic",
   loginText: "Sign in to explore the latest offers and products.",
   loginPasswordHint: "Use your Clinic credentials",
-  loginFootnote: "Need an account? Contact your Clinic administrator.",
+  loginFootnote: "Need an account? Contact: 01055217216",
+  novaCredit: "Made by Nova Solutions",
+  novaPhone: "contact: 01509999283",
   adminLoginTitle: "Clinic admin sign in",
   adminLoginText:
     "Manage offers, brands and products from the Clinic operations workspace.",

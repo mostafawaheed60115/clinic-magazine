@@ -15,34 +15,58 @@ on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
-create policy clinic_images_admin_insert
-on storage.objects
-for insert to authenticated
-with check (
-  bucket_id = 'clinic-images'
-  and name like 'clinic/%'
-  and (select private.is_admin())
-);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'clinic_images_admin_insert'
+  ) then
+    create policy clinic_images_admin_insert
+    on storage.objects
+    for insert to authenticated
+    with check (
+      bucket_id = 'clinic-images'
+      and name like 'clinic/%'
+      and (select private.is_admin())
+    );
+  end if;
 
-create policy clinic_images_admin_update
-on storage.objects
-for update to authenticated
-using (
-  bucket_id = 'clinic-images'
-  and name like 'clinic/%'
-  and (select private.is_admin())
-)
-with check (
-  bucket_id = 'clinic-images'
-  and name like 'clinic/%'
-  and (select private.is_admin())
-);
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'clinic_images_admin_update'
+  ) then
+    create policy clinic_images_admin_update
+    on storage.objects
+    for update to authenticated
+    using (
+      bucket_id = 'clinic-images'
+      and name like 'clinic/%'
+      and (select private.is_admin())
+    )
+    with check (
+      bucket_id = 'clinic-images'
+      and name like 'clinic/%'
+      and (select private.is_admin())
+    );
+  end if;
 
-create policy clinic_images_admin_delete
-on storage.objects
-for delete to authenticated
-using (
-  bucket_id = 'clinic-images'
-  and name like 'clinic/%'
-  and (select private.is_admin())
-);
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'clinic_images_admin_delete'
+  ) then
+    create policy clinic_images_admin_delete
+    on storage.objects
+    for delete to authenticated
+    using (
+      bucket_id = 'clinic-images'
+      and name like 'clinic/%'
+      and (select private.is_admin())
+    );
+  end if;
+end $$;
