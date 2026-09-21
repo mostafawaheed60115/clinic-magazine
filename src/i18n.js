@@ -71,6 +71,12 @@ const ar = {
   loginText: "سجّل الدخول لاستكشاف أحدث العروض والمنتجات.",
   loginPasswordHint: "استخدم بيانات Clinic الخاصة بك",
   loginFootnote: "هل تحتاج إلى حساب؟ تواصل مع مسؤول Clinic.",
+  adminLoginTitle: "دخول لوحة الإدارة",
+  adminLoginText:
+    "أدِر العروض والعلامات التجارية والمنتجات من مساحة Clinic الداخلية.",
+  adminLoginBadge: "مساحة تشغيل Clinic",
+  adminLoginAccess: "دخول مخصص للمشرفين",
+  adminLoginFootnote: "تحتاج إلى صلاحية؟ تواصل مع مسؤول Clinic.",
   demoWarning:
     "هذه تجربة محلية على جهازك. تسجيل الدخول التوضيحي لا يوفر حماية حقيقية.",
   demoCredentials: "للتجربة: اسم المستخدم demo وكلمة المرور clinic",
@@ -230,6 +236,12 @@ const en = {
   loginText: "Sign in to explore the latest offers and products.",
   loginPasswordHint: "Use your Clinic credentials",
   loginFootnote: "Need an account? Contact your Clinic administrator.",
+  adminLoginTitle: "Clinic admin sign in",
+  adminLoginText:
+    "Manage offers, brands and products from the Clinic operations workspace.",
+  adminLoginBadge: "Clinic operations",
+  adminLoginAccess: "Admin-only access",
+  adminLoginFootnote: "Need access? Contact a Clinic administrator.",
   demoWarning:
     "This is a local demo on your device. Demo sign-in provides no real security.",
   demoCredentials: "Try username demo and password clinic",

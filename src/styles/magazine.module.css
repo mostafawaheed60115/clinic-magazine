@@ -925,14 +925,15 @@
   }
 }
 
-/* Auth is deliberately editorial: a campaign image gives the sign-in screen
-   the same point of view as the catalog while keeping the form quiet. */
+/* Public sign-in stays focused on one task: entering the catalog. */
 .loginShell {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
-  margin: 0;
-  background: var(--paper);
+  place-items: center;
+  padding: clamp(22px, 5vw, 64px);
+  background:
+    radial-gradient(circle at 10% 8%, rgb(220 235 224 / 0.72), transparent 32%),
+    var(--wash-gradient);
 }
 .loginTopbar {
   position: absolute;
@@ -956,78 +957,6 @@
   padding: 8px 10px;
   color: var(--ink);
 }
-.loginVisual {
-  min-height: 720px;
-  position: relative;
-  background:
-    radial-gradient(
-      circle at 16% 16%,
-      rgb(255 253 249 / 0.18),
-      transparent 26%
-    ),
-    radial-gradient(
-      circle at 88% 74%,
-      rgb(117 175 142 / 0.32),
-      transparent 34%
-    ),
-    var(--hero-gradient);
-  padding: 42px clamp(28px, 5vw, 78px) 38px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  color: var(--paper);
-  isolation: isolate;
-  overflow: hidden;
-}
-.loginVisual::before {
-  content: "";
-  position: absolute;
-  inset: 10% 12%;
-  border: 1px solid rgb(255 253 249 / 0.24);
-  border-radius: 20px;
-  background:
-    linear-gradient(
-      90deg,
-      transparent 49.8%,
-      rgb(255 253 249 / 0.12) 50%,
-      transparent 50.2%
-    ),
-    linear-gradient(
-      0deg,
-      transparent 49.8%,
-      rgb(255 253 249 / 0.12) 50%,
-      transparent 50.2%
-    );
-  background-size: 72px 72px;
-  opacity: 0.72;
-  transform: rotate(-4deg);
-  pointer-events: none;
-}
-.loginVisual::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(160deg, transparent 0 58%, rgb(30 51 40 / 0.34) 100%),
-    radial-gradient(circle at 80% 18%, rgb(255 253 249 / 0.18), transparent 30%);
-  pointer-events: none;
-}
-.loginCaption {
-  position: relative;
-  z-index: 1;
-  max-width: 480px;
-  padding-block: 24px;
-}
-.loginCaption::before {
-  content: "";
-  display: block;
-  width: 52px;
-  height: 4px;
-  margin-block-end: 18px;
-  border-radius: 999px;
-  background: var(--on-primary);
-  opacity: 0.84;
-}
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.13em;
@@ -1035,19 +964,16 @@
   font-weight: 750;
   color: var(--rose);
 }
-.loginCaption p {
-  margin-top: 12px;
-  font-size: clamp(28px, 4vw, 54px);
-  line-height: 1.12;
-  max-width: 10ch;
-  font-weight: 600;
-}
 .loginPanel {
-  background: var(--wash-gradient);
+  width: min(100%, 510px);
+  background: rgb(255 253 249 / 0.88);
+  border: 1px solid rgb(212 222 214 / 0.92);
+  border-radius: 16px;
+  box-shadow: 0 26px 80px rgb(30 51 40 / 0.14);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: clamp(30px, 5vw, 70px) clamp(24px, 6vw, 88px);
+  padding: clamp(28px, 5vw, 56px) clamp(24px, 6vw, 64px);
   position: relative;
 }
 .loginPanelLogo {
@@ -1239,28 +1165,15 @@
 }
 @media (max-width: 800px) {
   .loginShell {
-    display: block;
-    margin: 0;
-  }
-  .loginVisual {
-    min-height: 340px;
-    padding: 24px 20px 22px;
-  }
-  .loginVisual::before {
-    inset: 11% 8%;
-    border-radius: 20px;
-    background-size: 56px 56px;
+    padding: 76px 20px 32px;
   }
   .loginPanelLogo {
     width: 78px;
     height: 78px;
     margin-block-end: 16px;
   }
-  .loginCaption p {
-    font-size: 31px;
-  }
   .loginPanel {
-    padding: 72px 20px 50px;
+    padding: 36px 20px 42px;
   }
   .loginTopbar {
     inset-block-start: 16px;
@@ -1341,19 +1254,11 @@
   .carouselArrows {
     order: 2;
   }
-  .loginVisual {
-    min-height: 280px;
-    padding: 24px 18px 30px;
-  }
-  .loginVisual::before {
-    inset: 10% 5%;
-    background-size: 48px 48px;
-  }
-  .loginCaption p {
-    font-size: 28px;
+  .loginShell {
+    padding: 66px 14px 22px;
   }
   .loginPanel {
-    padding: 48px 18px 34px;
+    padding: 30px 18px 34px;
   }
   .loginPanelLogo {
     width: 70px;

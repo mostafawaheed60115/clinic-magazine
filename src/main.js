@@ -91,9 +91,12 @@ export async function render(options = {}) {
   await ensureSessionValid();
   authState = getAuthState();
   if (!authState.session) {
-    app.innerHTML = authPage(authState.mode || "unconfigured");
+    app.innerHTML = authPage(
+      authState.mode || "unconfigured",
+      page === "admin",
+    );
     bindAuth(signal);
-    document.title = `${t("loginTitle")} | Clinic`;
+    document.title = `${t(page === "admin" ? "adminLoginTitle" : "loginTitle")} | Clinic`;
     return;
   }
   if (page === "admin" && !authState.isAdmin) {
