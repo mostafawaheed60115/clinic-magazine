@@ -5,7 +5,7 @@
 }
 .header {
   width: 100%;
-  min-height: 106px;
+  min-height: 150px;
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--line);
@@ -32,8 +32,8 @@
   flex-shrink: 0;
 }
 .logo img {
-  width: 84px;
-  height: 84px;
+  width: 130px;
+  height: 130px;
   object-fit: contain;
   transition:
     transform 0.35s var(--ease),
@@ -168,6 +168,11 @@
   position: relative;
   z-index: 2;
   color: var(--on-primary);
+  text-decoration: none;
+  transition: filter 0.25s var(--ease);
+}
+.coverCopy:hover {
+  filter: brightness(1.03);
 }
 .coverCopy h2 {
   font-size: clamp(30px, 3.8vw, 55px);
@@ -192,12 +197,12 @@
   margin-top: 18px;
   margin-bottom: 28px;
 }
-.coverCopy a {
+.coverCopy .button {
   background: var(--surface-gradient);
   color: var(--primary-deep);
   box-shadow: 0 10px 24px rgb(30 51 40 / 0.16);
 }
-.coverCopy a:hover {
+.coverCopy .button:hover {
   background: var(--white);
   transform: translateY(-2px);
 }
@@ -208,6 +213,9 @@
   font-size: 19px;
 }
 .coverVisual {
+  display: block;
+  color: inherit;
+  text-decoration: none;
   overflow: hidden;
   min-height: 490px;
   position: relative;
@@ -486,31 +494,37 @@
 .novaAttribution {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 12px;
   margin-top: 16px;
   color: var(--white);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 800;
 }
 .novaAttribution > div {
   display: grid;
   gap: 2px;
 }
 .novaAttribution a {
+  display: inline-flex;
   color: inherit;
+  transition:
+    color 0.2s var(--ease),
+    transform 0.2s var(--ease);
 }
 .novaAttribution a:hover {
   text-decoration: underline;
   text-underline-offset: 4px;
+  transform: translateY(-2px);
+  color: var(--white);
 }
 .novaPhone {
   color: var(--surface-strong) !important;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
 }
 .novaLogo {
-  width: 28px;
-  height: 28px;
+  width: 75px;
+  height: 75px;
   border-radius: 8px;
   object-fit: cover;
   background: var(--white);
@@ -772,7 +786,7 @@
     padding-inline: 20px;
   }
   .header {
-    min-height: 118px;
+    min-height: 130px;
   }
   .headerInner {
     display: grid;
@@ -781,8 +795,8 @@
     padding-block: 18px 14px;
   }
   .logo img {
-    width: 62px;
-    height: 62px;
+    width: 92px;
+    height: 92px;
   }
   .nav {
     grid-row: 2;
@@ -1019,7 +1033,7 @@
   color: var(--rose);
 }
 .loginPanel {
-  width: min(100%, 510px);
+  width: min(100%, 570px);
   background: rgb(255 253 249 / 0.88);
   border: 1px solid rgb(212 222 214 / 0.92);
   border-radius: 16px;
@@ -1031,10 +1045,11 @@
   position: relative;
 }
 .loginPanelLogo {
-  width: 96px;
-  height: 96px;
+  width: 130px;
+  height: 130px;
   object-fit: contain;
   margin-block-end: 20px;
+  margin-inline: auto;
   filter: drop-shadow(0 14px 24px rgb(47 116 72 / 0.2));
 }
 .loginPanelInner {
@@ -1158,12 +1173,21 @@ html[lang="ar"] .loginPanel h1 {
   font-size: 12px;
 }
 .loginFooter .novaAttribution {
-  margin-top: 0;
+  width: min(100%, 230px);
+  margin: 0 auto;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 15px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 .loginFooter .novaPhone {
   color: var(--muted) !important;
+  font-size: 14px;
+}
+.loginFooter .novaAttribution a:hover {
+  color: var(--primary-deep) !important;
 }
 .loginError:empty {
   display: none;
@@ -1259,9 +1283,12 @@ html[lang="ar"] .loginPanel h1 {
     padding-block: 0;
   }
   .loginFooter {
-    align-items: flex-start;
+    align-items: center;
     flex-direction: column;
     gap: 8px;
+  }
+  .loginFooter > span {
+    text-align: center;
   }
   .productDetail {
     grid-template-columns: 1fr;
@@ -1277,15 +1304,15 @@ html[lang="ar"] .loginPanel h1 {
     padding-inline: 16px;
   }
   .header {
-    min-height: 108px;
+    min-height: 112px;
   }
   .headerInner {
     padding-block: 14px 12px;
     padding-inline: 16px;
   }
   .logo img {
-    width: 54px;
-    height: 54px;
+    width: 76px;
+    height: 76px;
   }
   .headerTools {
     gap: 3px;

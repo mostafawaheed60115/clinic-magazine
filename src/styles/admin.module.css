@@ -128,8 +128,8 @@
   min-width: 0;
 }
 .adminAuthBrand img {
-  width: 48px;
-  height: 48px;
+  width: 72px;
+  height: 72px;
   flex: 0 0 auto;
   object-fit: contain;
   padding: 5px;
@@ -192,12 +192,20 @@
   font-size: 12px;
 }
 .adminAuthFootnote .novaAttribution {
-  margin-top: 14px;
+  width: min(100%, 230px);
+  margin: 14px auto 0;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 15px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 .adminAuthFootnote .novaPhone {
   color: var(--muted) !important;
+  font-size: 14px;
+}
+.adminAuthFootnote .novaAttribution a:hover {
+  color: var(--primary-deep) !important;
 }
 @keyframes adminAuthEnter {
   from {
