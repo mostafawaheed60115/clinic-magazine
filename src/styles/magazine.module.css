@@ -11,6 +11,11 @@
   gap: 24px;
   direction: ltr;
   border-bottom: 1px solid var(--line);
+  background: rgb(255 253 249 / 0.72);
+  backdrop-filter: blur(14px);
+  transition:
+    background 0.3s var(--ease),
+    border-color 0.3s var(--ease);
 }
 .logo {
   display: flex;
@@ -22,6 +27,13 @@
   width: 84px;
   height: 84px;
   object-fit: contain;
+  transition:
+    transform 0.35s var(--ease),
+    filter 0.35s var(--ease);
+}
+.logo:hover img {
+  transform: rotate(-3deg) scale(1.04);
+  filter: drop-shadow(0 10px 16px rgb(47 116 72 / 0.18));
 }
 .nav {
   display: flex;
@@ -50,7 +62,8 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--rose);
+  background: var(--accent);
+  box-shadow: 0 2px 8px rgb(67 154 98 / 0.35);
 }
 .headerTools {
   display: flex;
@@ -78,17 +91,20 @@
 }
 .headerSearch:hover {
   text-decoration: underline;
+  color: var(--primary-deep);
 }
 .intro {
   display: flex;
   justify-content: space-between;
   gap: 30px;
   align-items: end;
-  padding-block: 42px 28px;
+  padding-block: 50px 30px;
+  animation: introReveal 0.65s var(--ease) both;
 }
 .intro h1 {
   font-size: clamp(32px, 3.5vw, 50px);
   font-weight: 600;
+  color: var(--primary-deep);
 }
 .intro p {
   color: var(--muted);
@@ -98,13 +114,35 @@
 .cover {
   position: relative;
   isolation: isolate;
-  background: var(--primary);
+  background: var(--hero-gradient);
   border-radius: 16px;
   overflow: hidden;
   display: grid;
   grid-template-columns: 47% 53%;
   min-height: 490px;
   box-shadow: 0 15px 38px var(--cover-shadow);
+  transition:
+    box-shadow 0.45s var(--ease),
+    transform 0.45s var(--ease);
+}
+.cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 12% 14%,
+      rgb(255 253 249 / 0.24),
+      transparent 32%
+    ),
+    linear-gradient(115deg, transparent 40%, rgb(255 253 249 / 0.1));
+  mix-blend-mode: screen;
+}
+.cover:hover {
+  box-shadow: 0 22px 48px rgb(47 116 72 / 0.22);
+  transform: translateY(-2px);
 }
 .coverCopy {
   padding: clamp(28px, 4vw, 58px);
@@ -114,6 +152,7 @@
   justify-content: center;
   position: relative;
   z-index: 2;
+  color: var(--on-primary);
 }
 .coverCopy h2 {
   font-size: clamp(30px, 3.8vw, 55px);
@@ -130,10 +169,22 @@
 }
 .coverCopy p {
   font-size: 14px;
-  color: var(--pink-text);
+  color: var(--surface-text);
+  background: rgb(255 253 249 / 0.84);
+  border-radius: 10px;
+  padding: 10px 12px;
   max-width: 34ch;
   margin-top: 18px;
   margin-bottom: 28px;
+}
+.coverCopy a {
+  background: var(--surface-gradient);
+  color: var(--primary-deep);
+  box-shadow: 0 10px 24px rgb(30 51 40 / 0.16);
+}
+.coverCopy a:hover {
+  background: var(--white);
+  transform: translateY(-2px);
 }
 .brandName {
   font-family: "Manrope Variable", sans-serif;
@@ -145,7 +196,7 @@
   overflow: hidden;
   min-height: 490px;
   position: relative;
-  background: var(--blush);
+  background: var(--surface-strong);
 }
 .coverVisual img {
   width: 100%;
@@ -154,10 +205,13 @@
   inset: 0;
   object-fit: cover;
   object-position: center;
-  transition: transform 0.8s var(--ease);
+  transition:
+    transform 0.8s var(--ease),
+    filter 0.8s var(--ease);
 }
 .coverVisual:hover img {
   transform: scale(1.035);
+  filter: saturate(1.08) contrast(1.03);
 }
 .sampleTag {
   position: absolute;
@@ -166,7 +220,9 @@
   font-size: 11px;
   padding: 5px 12px;
   border-radius: 20px;
-  background: var(--paper);
+  background: var(--surface-gradient);
+  color: var(--primary-deep);
+  box-shadow: 0 8px 20px rgb(30 51 40 / 0.14);
   z-index: 1;
 }
 .slideIn .coverVisual img {
@@ -193,6 +249,26 @@
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+@keyframes introReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes sectionReveal {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 .carouselFoot {
@@ -245,6 +321,7 @@
 .section {
   margin-top: 44px;
   margin-bottom: 60px;
+  animation: sectionReveal 0.65s 80ms var(--ease) both;
 }
 .sectionHead {
   display: flex;
@@ -281,7 +358,7 @@
 .brandTile {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--paper);
+  background: var(--surface-gradient);
   padding: 25px 18px 16px;
   min-height: 168px;
   display: flex;
@@ -289,13 +366,17 @@
   align-items: center;
   justify-content: center;
   transition:
-    border-color 0.2s,
-    background 0.2s;
+    border-color 0.2s var(--ease),
+    background 0.2s var(--ease),
+    transform 0.25s var(--ease),
+    box-shadow 0.25s var(--ease);
   min-width: 0;
 }
 .brandTile:hover {
-  border-color: var(--rose);
-  background: var(--white);
+  border-color: var(--accent);
+  background: var(--surface-tint);
+  transform: translateY(-5px);
+  box-shadow: 0 16px 30px rgb(47 116 72 / 0.14);
 }
 .brandTile .wordmark {
   height: 68px;
@@ -345,6 +426,7 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  color: var(--primary-deep);
 }
 .brandTile small svg {
   width: 14px;
@@ -359,7 +441,7 @@
   border-top: 1px solid var(--line);
 }
 .footer {
-  background: var(--ink);
+  background: linear-gradient(135deg, #1e3328 0%, #2f7448 100%);
   color: var(--paper);
   padding-block: 45px 24px;
   margin-top: 60px;
@@ -475,29 +557,46 @@
 }
 .product {
   min-width: 0;
+  animation: cardReveal 0.55s var(--ease) both;
+}
+.product:nth-child(2) {
+  animation-delay: 50ms;
+}
+.product:nth-child(3) {
+  animation-delay: 100ms;
+}
+.product:nth-child(4) {
+  animation-delay: 150ms;
+}
+.product:nth-child(n + 5) {
+  animation-delay: 200ms;
 }
 .productImage {
   aspect-ratio: 4 / 5;
   position: relative;
   overflow: hidden;
-  background: var(--blush);
+  background: var(--surface-strong);
   border-radius: 12px;
 }
 .productImage img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.6s var(--ease);
+  transition:
+    transform 0.6s var(--ease),
+    filter 0.6s var(--ease);
 }
 .product:hover .productImage img {
   transform: scale(1.05);
+  filter: saturate(1.06);
 }
 .discount {
   position: absolute;
   top: 14px;
   inset-inline-start: 14px;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--surface-gradient);
+  color: var(--primary-deep);
+  box-shadow: 0 6px 16px rgb(30 51 40 / 0.12);
   font-size: 11px;
   font-weight: 700;
   border-radius: 20px;
@@ -505,6 +604,11 @@
 }
 .productInfo {
   padding: 15px 2px;
+  border-inline-start: 2px solid transparent;
+  transition: border-color 0.25s var(--ease);
+}
+.product:hover .productInfo {
+  border-inline-start-color: var(--accent);
 }
 .productInfo h3 {
   font-size: 16px;
@@ -560,6 +664,16 @@
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+@keyframes cardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 @media (min-width: 1500px) {
@@ -889,7 +1003,7 @@
   font-weight: 600;
 }
 .loginPanel {
-  background: var(--background);
+  background: var(--wash-gradient);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -901,15 +1015,26 @@
   height: 96px;
   object-fit: contain;
   margin-block-end: 20px;
-  filter: drop-shadow(0 14px 24px rgb(67 154 98 / 0.16));
+  filter: drop-shadow(0 14px 24px rgb(47 116 72 / 0.2));
 }
 .loginPanelInner {
   width: min(100%, 440px);
   padding-block: 40px;
+  animation: loginReveal 0.7s var(--ease) both;
 }
 .loginPanel h1 {
   font-size: clamp(34px, 4.4vw, 54px);
   line-height: 1.2;
+}
+@keyframes loginReveal {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 .loginText {
   color: var(--muted);
@@ -963,7 +1088,7 @@
   padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--paper);
+  background: var(--surface-gradient);
   color: var(--ink);
   transition:
     border-color 0.2s,

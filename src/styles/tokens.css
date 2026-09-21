@@ -4,12 +4,17 @@
   /* Clinic's current identity: a calm linen field with botanical green action color. */
   --background: #f6f1eb;
   --primary: #75af8e;
+  --primary-deep: #2f7448;
   --ink: #1e3328;
   --accent: #439a62;
   --blush: #dcebe0;
   --rose: #2f7448;
   --muted: #4f6558;
   --paper: #fffdf9;
+  --surface-soft: #f3efe6;
+  --surface-tint: #eaf3ec;
+  --surface-strong: #cfe4d4;
+  --on-primary: #fffdf9;
   --line: #d4ded6;
   --danger: #963f45;
   --scroll-thumb: #75af8e;
@@ -19,13 +24,27 @@
   --radius: 16px;
   --danger-hover: #713136;
   --primary-hover: #2f7448;
-  --pink-text: #1e3328;
+  --surface-text: #1e3328;
   --inactive: #96a39a;
   --footer-line: #3f5a49;
   --white: #ffffff;
   --cover-shadow: #439a6226;
   --toast-shadow: #1e332826;
   --dialog-shadow: #1e332833;
+  --brand-gradient: linear-gradient(135deg, #1e3328 0%, #2f7448 100%);
+  --hero-gradient: linear-gradient(
+    135deg,
+    #2f7448 0%,
+    #439a62 52%,
+    #75af8e 100%
+  );
+  --surface-gradient: linear-gradient(135deg, #fffdf9 0%, #f3efe6 100%);
+  --wash-gradient: linear-gradient(
+    135deg,
+    #eaf3ec 0%,
+    #f6f1eb 58%,
+    #fffdf9 100%
+  );
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   font-family: "Manrope Variable", sans-serif;
   color: var(--ink);
@@ -64,6 +83,8 @@ body {
   margin: 0;
   font-size: 15px;
   line-height: 1.65;
+  background: var(--wash-gradient);
+  background-attachment: fixed;
 }
 button,
 input,
