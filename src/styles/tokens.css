@@ -38,6 +38,11 @@
   --cover-shadow: #439a6226;
   --toast-shadow: #1e332826;
   --dialog-shadow: #1e332833;
+  --elevation-1: 0 8px 18px rgb(30 51 40 / 0.08);
+  --elevation-2: 0 18px 42px rgb(30 51 40 / 0.12);
+  --elevation-3: 0 28px 64px rgb(30 51 40 / 0.18);
+  --edge-highlight: rgb(255 255 255 / 0.72);
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
   --brand-gradient: linear-gradient(135deg, #1e3328 0%, #2f7448 100%);
   --hero-gradient: linear-gradient(
     135deg,
@@ -90,8 +95,13 @@ body {
   margin: 0;
   font-size: 15px;
   line-height: 1.65;
-  background: var(--wash-gradient);
-  background-attachment: fixed;
+  background:
+    radial-gradient(
+      ellipse at 7% 3%,
+      rgb(207 228 212 / 0.34),
+      transparent 32rem
+    ),
+    var(--wash-gradient);
 }
 button,
 input,

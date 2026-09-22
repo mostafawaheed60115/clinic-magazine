@@ -1393,3 +1393,189 @@ html[lang="ar"] .loginPanel h1 {
     min-height: 52px;
   }
 }
+
+/* Editorial polish: tactile catalog surfaces, with motion tied to intent. */
+.header {
+  background: rgb(255 253 249 / 0.92);
+  box-shadow: 0 1px 0 rgb(30 51 40 / 0.035);
+}
+.intro h1,
+.pageHead h1 {
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.76);
+}
+.cover {
+  border: 1px solid rgb(255 255 255 / 0.3);
+  box-shadow: var(--elevation-3);
+  transform-style: preserve-3d;
+}
+.cover::after {
+  position: absolute;
+  z-index: 2;
+  content: "";
+  inset: 10px;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: 11px;
+  pointer-events: none;
+  transform: translateZ(2px);
+}
+.coverCopy,
+.coverVisual {
+  transform: translateZ(8px);
+}
+.coverCopy h2 {
+  text-shadow: 0 2px 20px rgb(30 51 40 / 0.16);
+}
+.coverVisual img {
+  will-change: transform;
+}
+.brandTile {
+  position: relative;
+  overflow: hidden;
+  border-color: rgb(212 222 214 / 0.86);
+  background:
+    radial-gradient(circle at 50% 0%, rgb(207 228 212 / 0.52), transparent 72%),
+    linear-gradient(160deg, var(--paper), #f8f6ee);
+  box-shadow:
+    var(--elevation-1),
+    inset 0 1px 0 var(--edge-highlight);
+  transform-style: preserve-3d;
+}
+.brandTile::before {
+  position: absolute;
+  inset: 7px;
+  content: "";
+  border: 1px solid rgb(212 222 214 / 0.48);
+  border-radius: 8px;
+  pointer-events: none;
+  transform: translateZ(2px);
+}
+.brandIdentity,
+.brandTile small {
+  position: relative;
+  transform: translateZ(12px);
+}
+.brandLogo,
+.wordmark img {
+  filter: drop-shadow(0 5px 9px rgb(30 51 40 / 0.09));
+}
+.productImage {
+  border: 1px solid rgb(212 222 214 / 0.75);
+  box-shadow: var(--elevation-1);
+  transform-style: preserve-3d;
+}
+.productImage::after {
+  position: absolute;
+  content: "";
+  inset: 0;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.productInfo h3 {
+  line-height: 1.5;
+}
+.brandBadge,
+.productDetailImage {
+  box-shadow:
+    var(--elevation-2),
+    inset 0 1px 0 var(--edge-highlight);
+}
+.brandBadge {
+  transform-style: preserve-3d;
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 900px) {
+  .brandTile:hover {
+    transform: perspective(850px) rotateX(2deg) rotateY(-2deg) translateY(-4px);
+    box-shadow:
+      var(--elevation-2),
+      inset 0 1px 0 var(--edge-highlight);
+  }
+  .product:hover .productImage {
+    transform: perspective(900px) rotateX(1deg) rotateY(-1deg);
+    box-shadow: var(--elevation-2);
+  }
+  .cover:hover {
+    transform: perspective(1600px) rotateX(0.4deg) translateY(-3px);
+  }
+}
+
+@media (max-width: 680px) {
+  .intro {
+    padding-block: 30px 22px;
+  }
+  .cover {
+    min-height: 0;
+    box-shadow: var(--elevation-2);
+  }
+  .cover::after {
+    inset: 7px;
+  }
+  .coverCopy,
+  .coverVisual {
+    transform: none;
+  }
+  .brandGrid,
+  .directory {
+    gap: 12px;
+  }
+  .brandTile {
+    box-shadow:
+      0 5px 14px rgb(30 51 40 / 0.07),
+      inset 0 1px 0 var(--edge-highlight);
+  }
+  .products {
+    gap: 20px 12px;
+  }
+  .productImage {
+    box-shadow: 0 5px 14px rgb(30 51 40 / 0.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover,
+  .brandTile,
+  .productImage {
+    transform: none !important;
+  }
+}
+
+.loginShell {
+  background:
+    radial-gradient(
+      ellipse at 85% 16%,
+      rgb(207 228 212 / 0.64),
+      transparent 28rem
+    ),
+    radial-gradient(
+      ellipse at 8% 90%,
+      rgb(220 235 224 / 0.58),
+      transparent 30rem
+    ),
+    var(--background);
+}
+.loginPanel {
+  border-color: rgb(212 222 214 / 0.84);
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgb(234 243 236 / 0.74),
+      transparent 58%
+    ),
+    linear-gradient(150deg, var(--paper), #f9f7f0);
+  box-shadow:
+    var(--elevation-3),
+    inset 0 1px 0 var(--edge-highlight);
+}
+.loginPanelLogo {
+  filter: drop-shadow(0 12px 18px rgb(47 116 72 / 0.22));
+}
+.loginField input {
+  background: var(--paper);
+  box-shadow: inset 0 1px 2px rgb(30 51 40 / 0.04);
+}
+.loginSubmit {
+  box-shadow:
+    0 12px 24px rgb(47 116 72 / 0.24),
+    inset 0 1px 0 rgb(255 255 255 / 0.2);
+}
