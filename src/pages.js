@@ -26,7 +26,7 @@ export function wordmark(brand) {
   return `<span class="${m.wordmark}" data-style="${brand.style || 0}" dir="ltr">${brand.logo_url ? image(brand.logo_url, nameOf(brand)) : esc(brand.name_en)}</span>`;
 }
 function brandTile(brand) {
-  return `<a href="#/brand/${encodeURIComponent(brand.id)}" class="${m.brandTile}" aria-label="${esc(nameOf(brand))}">${wordmark(brand)}<small>${t("browseCatalog")}${arrow()}</small></a>`;
+  return `<a href="#/brand/${encodeURIComponent(brand.id)}" class="${m.brandTile}" aria-label="${esc(nameOf(brand))}"><span class="${m.brandIdentity}" dir="ltr">${brand.logo_url ? image(brand.logo_url, "", m.brandLogo) : ""}<strong>${esc(nameOf(brand))}</strong></span><small>${t("browseCatalog")}${arrow()}</small></a>`;
 }
 function productCard(product) {
   return `<article class="${m.product}"><a href="#/product/${encodeURIComponent(product.id)}"><div class="${m.productImage}">${image(product.img_url, nameOf(product))}${product.discount != null ? `<span class="${m.discount}">${number(product.discount)}% ${t("discount")}</span>` : ""}</div><div class="${m.productInfo}"><h3>${esc(nameOf(product))}</h3><div class="${m.productDetails}"><span>${number(product.size_value)} ${t(product.size_unit)}</span>${product.qty != null ? `<span>${number(product.qty)} ${t("pack")}</span>` : ""}</div><p class="${m.price}" aria-label="${t("finalPrice")}">${money(product.final_price)}</p></div></a></article>`;

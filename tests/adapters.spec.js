@@ -1,4 +1,40 @@
 import { test, expect } from "@playwright/test";
+import {
+  importRows,
+  parseCsv,
+  productExportRows,
+  serializeCsv,
+} from "../src/csv.js";
+
+test("CSV exports round-trip safely and preserve blank override fields", () => {
+  const brand = { id: "brand-1", name_en: "Test brand" };
+  const rows = productExportRows(brand, [
+    {
+      id: "product-1",
+      revision: 3,
+      name_en: "=unsafe",
+      name_ar: "منتج",
+      size_value: 30,
+      size_unit: "ml",
+      qty: null,
+      discount: null,
+      final_price: 120,
+      product_url: null,
+      img_url: "https://example.com/image.webp",
+    },
+  ]);
+  const parsed = parseCsv(serializeCsv(rows));
+  const imported = importRows(parsed, brand)[0];
+  expect(imported).toMatchObject({
+    brand_id: "brand-1",
+    product_id: "product-1",
+    name_en: "=unsafe",
+    qty: "",
+    discount: "",
+    product_url: "",
+    image_url: "https://example.com/image.webp",
+  });
+});
 
 test.describe("client adapters", () => {
   test("timed-out uploads clean up only after late completion", async ({

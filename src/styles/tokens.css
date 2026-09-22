@@ -1,6 +1,13 @@
 @import "@fontsource-variable/cairo";
 @import "@fontsource-variable/manrope";
 :root {
+  --z-dropdown: 200;
+  --z-popover: 300;
+  --z-header: 400;
+  --z-backdrop: 500;
+  --z-dialog: 600;
+  --z-sheet: 700;
+  --z-toast: 900;
   /* Clinic's current identity: a calm linen field with botanical green action color. */
   --background: #f6f1eb;
   --primary: #75af8e;

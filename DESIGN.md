@@ -48,6 +48,8 @@ User-approved offer cover plus catalog. A calm linen and botanical-green cosmeti
 
 The 2026-09-20 extension places a branded sign-in surface before the magazine. Preserve the current green/linen palette, fonts and supplied logo: a desktop campaign image accompanies a calm, focused login form; on phones the form takes priority. Company search is prominent after sign-in. Product detail pages expose image and product links without making purchase claims. Admin management shares the same controls and tokens with denser content and a navigable narrow-screen layout.
 
+The operations-desk refresh adds a visible brand identity (mark plus localized name), per-brand CSV actions, and an image-library utility. CSV workflows are preview-first and explain row-level errors before applying changes. The image library keeps filenames and resulting public URLs together so URLs can be copied or downloaded as a mapping file without losing context.
+
 ## Colors
 Use the supplied palette. Deep green text on linen and parchment surfaces. Shamrock green carries actions; muted teal and sage support surfaces. CSS tokens in src/styles/tokens.css own runtime values and map directly to this document.
 
@@ -55,7 +57,7 @@ Use the supplied palette. Deep green text on linen and parchment surfaces. Shamr
 Self-host Cairo for Arabic and Manrope for Latin. Fluid display sizes; Arabic has generous line height, no added tracking. Prices have tabular numerals.
 
 ## Layout
-Maximum content width 1320px, fluid gutters 20–64px. Logo physically left regardless of direction. Desktop campaign image and copy share a wide surface. Mobile stacks campaign copy and imagery. Brand tiles are quiet typographic signatures, product cards emphasize photographs. Admin uses natural document scrolling with bounded table overflow.
+Maximum content width 1320px, fluid gutters 20–64px. Logo physically left regardless of direction. Desktop campaign image and copy share a wide surface. Mobile stacks campaign copy and imagery. Brand tiles are quiet typographic signatures with the name always visible beside the mark, product cards emphasize photographs. Admin uses natural document scrolling with bounded table overflow; the mobile sidebar becomes a scrollable navigation rail while content remains width-safe.
 
 ## Elevation & Depth
 Soft offset campaign shadow only. Other surfaces use subtle borders without competing shadows.

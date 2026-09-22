@@ -33,6 +33,7 @@ let cachedData;
 let authReady = false;
 let authState = getAuthState();
 let authIdentity = authState.session?.user?.id || authState.user?.id || "";
+let renderPending = false;
 
 function getRoute() {
   const direct = location.pathname.replace(/^\/+|\/+$/g, "");
@@ -70,7 +71,12 @@ function setupMessage() {
   return `<div class="${m.pageHead}"><h1 tabindex="-1">${t("loginTitle")}</h1><p>${t("configuredLoginText")}</p></div>`;
 }
 function scheduleRender() {
-  queueMicrotask(() => render());
+  if (renderPending) return;
+  renderPending = true;
+  queueMicrotask(() => {
+    renderPending = false;
+    render();
+  });
 }
 
 export function navigate(hash) {
@@ -133,7 +139,6 @@ export async function render(options = {}) {
     bindChrome(signal);
     return;
   }
-  if (!(await ensureSessionValid()) || request !== version) return;
   if (request !== version) return;
   let content;
   if (page === "offers") content = offersPage(data);
@@ -395,10 +400,10 @@ initAuth()
     authState = next || getAuthState();
     authIdentity = authState.session?.user?.id || authState.user?.id || "";
     authReady = true;
-    render();
+    scheduleRender();
   })
   .catch(() => {
     authState = getAuthState();
     authReady = true;
-    render();
+    scheduleRender();
   });

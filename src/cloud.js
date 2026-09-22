@@ -172,6 +172,8 @@ function toDatabase(collection, item) {
   // localized fields for the magazine UI and future translations.
   if (record.name === undefined)
     record.name = record.name_en || record.name_ar || "";
+  if (collection === "products" && record.product_url === "")
+    record.product_url = null;
   return record;
 }
 
@@ -254,6 +256,17 @@ export async function deleteCatalogItem(collection, id, revision) {
   }
   if (!data?.length)
     throw errorWithCode("This record changed in another session", "conflict");
+}
+
+export async function importBrandProducts(companyId, rows, dryRun = true) {
+  const client = requireClient();
+  const { data, error } = await client.rpc("import_brand_products", {
+    p_company_id: companyId,
+    p_rows: rows,
+    p_dry_run: dryRun,
+  });
+  if (error) throw error;
+  return data;
 }
 
 export async function invokeAdmin(action, payload = {}) {

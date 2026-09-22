@@ -401,11 +401,29 @@
   transform: translateY(-5px);
   box-shadow: 0 16px 30px rgb(47 116 72 / 0.14);
 }
-.brandTile .wordmark {
-  height: 68px;
+.brandIdentity {
+  min-height: 98px;
+  width: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+.brandLogo {
+  width: 100%;
+  max-height: 56px !important;
+  object-fit: contain;
+}
+.brandIdentity strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-family: "Cairo Variable", "Manrope Variable", sans-serif;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 750;
+  color: var(--ink);
 }
 .wordmark {
   font-family: "Manrope Variable", sans-serif;

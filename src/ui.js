@@ -27,6 +27,7 @@ const paths = {
   external:
     "M14 4h6v6m-1-5L10 14M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5",
   user: "M20 21a8 8 0 0 0-16 0M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8",
+  image: "M4 5h16v14H4zM4 16l4-4 3 3 2-2 7 5M15 9h.01",
 };
 export function icon(name, extra = "") {
   return `<svg class="${s.icon} ${extra}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.arrow}"/></svg>`;

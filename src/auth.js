@@ -34,6 +34,7 @@ let initPromise;
 let authSubscription;
 let authEpoch = 0;
 let sessionExpiryTimer;
+let profilePromise;
 const listeners = new Set();
 
 const snapshot = () => ({ ...state });
@@ -229,29 +230,41 @@ function clearState(error = null) {
 }
 
 async function loadSupabaseProfile(user) {
+  if (profilePromise?.userId === user?.id) return profilePromise.promise;
   const client = getSupabase();
   if (!client || !user)
     throw authError("A signed-in user is required", "profile_missing");
-  const [profileResult, adminResult] = await Promise.all([
-    client.from("users").select("*").eq("id", user.id).maybeSingle(),
-    client.from("admin").select("id").eq("id", user.id).maybeSingle(),
-  ]);
-  if (profileResult.error) throw profileResult.error;
-  if (adminResult.error) throw adminResult.error;
-  const profile = profileResult.data;
-  if (!profile)
-    throw authError("The account profile is missing", "profile_missing");
-  if (profile.active !== true) {
-    await client.auth.signOut();
-    throw authError("This account is inactive", "inactive");
+  const promise = (async () => {
+    const { data, error } = await client
+      .from("users")
+      .select("*, admin(id)")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (error) throw error;
+    const profile = data;
+    if (!profile)
+      throw authError("The account profile is missing", "profile_missing");
+    if (profile.active !== true) {
+      await client.auth.signOut({ scope: "local" });
+      throw authError("This account is inactive", "inactive");
+    }
+    state = {
+      ...state,
+      user,
+      profile,
+      isAdmin: Boolean(
+        Array.isArray(profile.admin) ? profile.admin.length : profile.admin,
+      ),
+      error: null,
+    };
+    return profile;
+  })();
+  profilePromise = { userId: user.id, promise };
+  try {
+    return await promise;
+  } finally {
+    if (profilePromise?.promise === promise) profilePromise = undefined;
   }
-  state = {
-    ...state,
-    user,
-    profile,
-    isAdmin: Boolean(adminResult.data),
-    error: null,
-  };
 }
 
 async function initialize() {
@@ -422,7 +435,7 @@ export async function signOut() {
   }
   if (mode === "supabase") {
     authEpoch += 1;
-    const { error } = await getSupabase().auth.signOut();
+    const { error } = await getSupabase().auth.signOut({ scope: "local" });
     if (error) throw error;
   }
   clearState();

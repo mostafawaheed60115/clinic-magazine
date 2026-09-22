@@ -15,7 +15,13 @@ import {
   s,
   safeExternalUrl,
 } from "./ui.js";
-import { collections, saveItem, deleteItem, resetStore } from "./store.js";
+import {
+  collections,
+  saveItem,
+  deleteItem,
+  resetStore,
+  importBrandProducts,
+} from "./store.js";
 import { loadUsers, createUser, updateUser, signOut } from "./auth.js";
 import {
   prepareImage,
@@ -24,6 +30,14 @@ import {
   scheduleManagedImageCleanup,
 } from "./upload.js";
 import { notFound } from "./pages.js";
+import {
+  downloadCsv,
+  parseCsv,
+  productExportRows,
+  productTemplateRows,
+  importRows,
+  serializeCsv,
+} from "./csv.js";
 import a from "./styles/admin.module.css";
 
 let dirty = false;
@@ -39,6 +53,12 @@ export async function mayLeave() {
 }
 const labelFor = (collection) =>
   collection === "companies" ? "brands" : collection;
+const fileName = (value) =>
+  String(value || "clinic")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "clinic";
 const field = (key, label, value = "", options = {}) => {
   const id = `field-${key}`;
   return `<div class="${a.field} ${options.full ? a.full : ""}"><label for="${id}">${t(label)}</label><input id="${id}" name="${key}" value="${esc(value)}" type="${options.type || "text"}" ${options.required ? "required" : ""} ${options.dir ? `dir="${options.dir}"` : ""} ${options.extra || ""} aria-describedby="${id}-error" /><span class="${s.error}" id="${id}-error"></span></div>`;
@@ -47,13 +67,19 @@ const selectField = (key, label, options, value = "", required = true) =>
   `<div class="${a.field}"><label for="field-${key}">${t(label)}</label><select id="field-${key}" name="${key}" ${required ? "required" : ""} aria-describedby="field-${key}-error">${options.map(([v, l]) => `<option value="${esc(v)}" ${v === value ? "selected" : ""}>${esc(l)}</option>`).join("")}</select><span id="field-${key}-error" class="${s.error}"></span></div>`;
 
 function sidebar(route, authState) {
-  const nav = [...collections, ...(authState.isAdmin ? ["users"] : [])];
-  return `<aside class="${a.sidebar}"><nav aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "users" ? "user" : "grid")}${t(labelFor(c))}</a>`).join("")}</nav><small>${authState.mode === "demo" ? t("localOnly") : t("cloudManaged")}</small>${button(t("signOut"), 'id="app-sign-out"', "ghost")}</aside>`;
+  const nav = [
+    ...collections,
+    ...(authState.isAdmin ? ["images", "users"] : []),
+  ];
+  return `<aside class="${a.sidebar}"><div class="${a.sidebarBrand}"><span class="${a.sidebarMark}">${icon("grid")}</span><div><strong>Clinic</strong><small>${t("admin")}</small></div></div><nav aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "users" ? "user" : c === "images" ? "image" : "grid")}${esc(c === "images" ? t("imageLibrary") : t(labelFor(c)))}</a>`).join("")}</nav><div class="${a.sidebarFoot}"><small>${authState.mode === "demo" ? t("localOnly") : t("cloudManaged")}</small>${button(t("signOut"), 'id="app-sign-out"', "ghost")}</div></aside>`;
 }
 function overview(data, authState) {
   const reset =
     authState.mode === "demo" ? button(t("reset"), 'id="reset-demo"') : "";
   return `<div class="${a.head}"><div><h1 tabindex="-1">${t("overview")}</h1><p>${t("manageText")}</p></div></div>${authState.mode === "demo" ? `<p class="${s.banner}">${t("demoWarning")}</p>` : ""}<div class="${a.metrics}">${collections.map((c) => `<section class="${a.metric}"><strong>${number(data[c].length)}</strong><span>${t(labelFor(c))}</span><a href="#/admin/${c}">${t("manage")}${arrow()}</a></section>`).join("")}</div>${reset}<p id="admin-error" role="alert" class="${s.error}"></p>`;
+}
+function brandCsvActions(brand) {
+  return `<div class="${a.rowTools}"><button type="button" class="${s.compactButton}" data-export-brand="${esc(brand.id)}">${t("exportProducts")}</button><button type="button" class="${s.compactButton}" data-template-brand="${esc(brand.id)}">${t("downloadTemplate")}</button><button type="button" class="${s.compactButton} ${s.primary}" data-import-brand="${esc(brand.id)}">${t("importProducts")}</button></div>`;
 }
 function list(data, route, c, users = []) {
   const q = route.params.get("q") || "";
@@ -63,7 +89,8 @@ function list(data, route, c, users = []) {
     route,
     8,
   );
-  return `<div class="${a.head}"><div><h1 tabindex="-1">${t(labelFor(c))}</h1><p>${number(page.total)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/${c}/new">${icon("plus")}${t("add")}</a></div>${searchBox(q, c === "products" ? "searchProducts" : "searchBrands")}<p id="admin-error" class="${s.error}" role="alert"></p>${page.total ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t(labelFor(c))}"><table class="${a.table}"><thead><tr><th scope="col">${t(locale === "ar" ? "nameAr" : "nameEn")}</th><th scope="col">${t(c === "products" ? "finalPrice" : c === "companies" ? "products" : "brand")}</th><th scope="col">${t("actions")}</th></tr></thead><tbody>${page.items.map((item) => `<tr><td><div class="${a.imageCell}">${c !== "companies" ? image(item.img_url || item.img_link, nameOf(item)) : ""}<span>${esc(nameOf(item))}<small dir="ltr">${esc(item.name_en)}</small></span></div></td><td>${c === "products" ? money(item.final_price) : c === "companies" ? number(data.products.filter((p) => p.company_id === item.id).length) : esc(nameOf(data.companies.find((b) => b.id === item.company_id)))}</td><td><div class="${a.tableActions}"><a class="${s.iconButton}" href="#/admin/${c}/edit/${encodeURIComponent(item.id)}" aria-label="${t("edit")}: ${esc(nameOf(item))}">${icon("edit")}</a><button type="button" class="${s.iconButton}" data-delete="${esc(item.id)}" aria-label="${t("delete")}: ${esc(nameOf(item))}">${icon("trash")}</button></div></td></tr>`).join("")}</tbody></table></div>${pagination(page.page, page.pages)}` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
+  const isBrands = c === "companies";
+  return `<div class="${a.head}"><div><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t(labelFor(c))}</h1><p>${number(page.total)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/${c}/new">${icon("plus")}${t("add")}</a></div><div class="${a.listToolbar}">${searchBox(q, c === "products" ? "searchProducts" : "searchBrands")}<span class="${a.listHint}">${isBrands ? t("brandToolsHint") : t("manageText")}</span></div><p id="admin-error" class="${s.error}" role="alert"></p>${page.total ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t(labelFor(c))}"><table class="${a.table}"><thead><tr><th scope="col">${t(locale === "ar" ? "nameAr" : "nameEn")}</th><th scope="col">${t(c === "products" ? "finalPrice" : c === "companies" ? "products" : "brand")}</th><th scope="col">${t("actions")}</th></tr></thead><tbody>${page.items.map((item) => `<tr><td><div class="${a.imageCell}">${c !== "companies" ? image(item.img_url || item.img_link, nameOf(item)) : `<span class="${a.brandDot}">${esc((nameOf(item) || "?").slice(0, 1))}</span>`}<span>${esc(nameOf(item))}<small dir="ltr">${esc(item.name_en)}</small></span></div></td><td>${c === "products" ? money(item.final_price) : c === "companies" ? number(data.products.filter((p) => p.company_id === item.id).length) : esc(nameOf(data.companies.find((b) => b.id === item.company_id)))}</td><td><div class="${a.tableActions}"><a class="${s.iconButton}" href="#/admin/${c}/edit/${encodeURIComponent(item.id)}" aria-label="${t("edit")}: ${esc(nameOf(item))}">${icon("edit")}</a><button type="button" class="${s.iconButton}" data-delete="${esc(item.id)}" aria-label="${t("delete")}: ${esc(nameOf(item))}">${icon("trash")}</button>${isBrands ? brandCsvActions(item) : ""}</div></td></tr>`).join("")}</tbody></table></div>${pagination(page.page, page.pages)}` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
 }
 function userList(users, q) {
   const usernameOf = (user) => user.username || user.user || user.email || "";
@@ -73,7 +100,8 @@ function userList(users, q) {
   return `<div class="${a.head}"><div><h1 tabindex="-1">${t("users")}</h1><p>${number(filtered.length)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/users/new">${icon("plus")}${t("add")}</a></div>${searchBox(q, "username")}<p id="admin-error" class="${s.error}" role="alert"></p>${filtered.length ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t("users")}"><table class="${a.table}"><thead><tr><th>${t("username")}</th><th>${t("active")}</th><th>${t("actions")}</th></tr></thead><tbody>${filtered.map((u) => `<tr><td><strong>${esc(u.name || "")}</strong><small dir="ltr">${esc(usernameOf(u))}</small></td><td><span class="${u.active === false ? a.inactive : a.active}">${u.active === false ? t("disableUser") : t("active")}</span></td><td><a class="${s.iconButton}" href="#/admin/users/edit/${encodeURIComponent(u.id)}" aria-label="${t("edit")}: ${esc(u.name || usernameOf(u))}">${icon("edit")}</a></td></tr>`).join("")}</tbody></table></div>` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
 }
 function imageFields(c, item, imgKey) {
-  return `${field("image_url", "imageUrl", item[imgKey]?.startsWith("https://") ? item[imgKey] : "", { type: "url", full: true, dir: "ltr" })}<div class="${a.mediaField} ${a.field} ${a.full}"><label for="field-image-file">${t("upload")}</label><input id="field-image-file" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="image-help field-image-file-error" /><small id="image-help">${t("imageHelp")}</small><span id="field-image-file-error" class="${s.error}"></span>${image(item[imgKey] || "./assets/image-fallback.svg", t("preview"), a.preview)}</div>`;
+  const imageLabel = c === "products" ? "productImageUrl" : "imageUrl";
+  return `${field("image_url", imageLabel, item[imgKey]?.startsWith("https://") ? item[imgKey] : "", { type: "url", full: true, dir: "ltr" })}<div class="${a.mediaField} ${a.field} ${a.full}"><label for="field-image-file">${t("upload")}</label><input id="field-image-file" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="image-help field-image-file-error" /><small id="image-help">${t("imageHelp")}</small><span id="field-image-file-error" class="${s.error}"></span>${image(item[imgKey] || "./assets/image-fallback.svg", t("preview"), a.preview)}</div>`;
 }
 function editor(data, route, c) {
   const edit = route.parts[2] === "edit";
@@ -106,7 +134,7 @@ function editor(data, route, c) {
             ["g", t("g")],
           ],
           item.size_unit || "ml",
-        )}${field("final_price", "price", item.final_price, { required: true, type: "number", extra: 'min="0" max="10000000" step="0.01"' })}${field("qty", "qty", item.qty, { type: "number", extra: 'min="1" max="100000" step="1"' })}${field("discount", "discountField", item.discount, { type: "number", extra: 'min="0" max="100" step="0.01"' })}${field("product_url", "productUrl", item.product_url, { type: "url", full: true, dir: "ltr" })}`
+        )}${field("final_price", "price", item.final_price, { required: true, type: "number", extra: 'min="0" max="10000000" step="0.01"' })}${field("qty", "qty", item.qty, { type: "number", extra: 'min="1" max="100000" step="1"' })}${field("discount", "discountField", item.discount, { type: "number", extra: 'min="0" max="100" step="0.01"' })}${field("product_url", "productPageUrl", item.product_url, { type: "url", full: true, dir: "ltr" })}`
       : ""
   }${c === "offers" ? `${field("description_ar", "descriptionAr", item.description_ar, { required: true, dir: "rtl", extra: 'maxlength="300"' })}${field("description_en", "descriptionEn", item.description_en, { required: true, dir: "ltr", extra: 'maxlength="300"' })}` : ""}${imageFields(c, item, imgKey)}</div><p id="form-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}" ${c !== "companies" && !data.companies.length ? "disabled" : ""}>${t("save")}</button><a class="${s.button} ${s.secondary}" href="#/admin/${c}">${t("cancel")}</a></div></form>`;
 }
@@ -117,21 +145,64 @@ function userEditor(users, route) {
   const username = item.username || item.user || item.email || "";
   return `<div class="${a.head}"><h1 tabindex="-1">${t(edit ? "updateUser" : "createUser")}</h1></div><p class="${a.note}">${t("passwordNeverShown")}</p><form id="user-form" class="${a.form}" novalidate data-id="${esc(item.id || "")}" data-revision="${esc(item.revision || 1)}"><div class="${a.formGrid}">${field("name", "nameEn", item.name, { required: true })}${field("user", "username", username, { required: true, dir: "ltr", extra: `${edit ? "readonly" : ""} autocomplete="username"` })}${field("phone", "phone", item.phone, { type: "tel", dir: "ltr" })}${field("password", edit ? "resetPassword" : "password", "", { type: "password", required: !edit, dir: "ltr", extra: 'autocomplete="new-password"' })}${edit ? `<div class="${a.field}"><label for="field-active">${t("active")}</label><select id="field-active" name="active"><option value="true" ${item.active !== false ? "selected" : ""}>${t("enableUser")}</option><option value="false" ${item.active === false ? "selected" : ""}>${t("disableUser")}</option></select></div>` : ""}</div><p id="user-form-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}">${t("save")}</button><a class="${s.button} ${s.secondary}" href="#/admin/users">${t("cancel")}</a></div></form>`;
 }
+function imageLibrary() {
+  return `<div class="${a.utilityPage}"><div class="${a.head}"><div><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t("imageLibrary")}</h1><p>${t("imageLibraryText")}</p></div></div><section class="${a.uploadHero}"><label class="${a.dropZone}" for="bulk-image-input" tabindex="0" role="button" aria-controls="bulk-image-input"><span class="${a.dropIcon}">${icon("image")}</span><strong>${t("dropImages")}</strong><small>${t("imageBatchHelp")}</small><span class="${s.button} ${s.secondary}">${t("chooseImages")}</span><input id="bulk-image-input" type="file" accept="image/jpeg,image/png,image/webp" multiple /></label><div class="${a.batchActions}"><span id="bulk-image-count" class="${a.listHint}"></span><button type="button" id="bulk-image-upload" class="${s.button} ${s.primary}" disabled>${t("uploadAll")}</button><button type="button" id="bulk-copy-urls" class="${s.button} ${s.secondary}" disabled>${t("copyAllUrls")}</button><button type="button" id="bulk-download-map" class="${s.button} ${s.secondary}" disabled>${t("downloadImageMap")}</button></div><p id="bulk-image-status" class="${a.status}" role="status" aria-live="polite"></p><div id="bulk-image-list" class="${a.uploadList}"></div></section></div>`;
+}
+function importPreview(result) {
+  if (!result) return "";
+  const rows = result.rows || [];
+  const errors = rows.filter((row) => row.errors?.length);
+  return `<section class="${a.importPanel}" aria-labelledby="import-preview-title"><div class="${a.importPanelHead}"><div><span class="${a.eyebrow}">${t("importPreview")}</span><h2 id="import-preview-title">${result.ok ? t("importReady") : t("importRowError")}</h2></div><div class="${a.importStats}"><span><b>${number(result.created || 0)}</b>${t("importCreated")}</span><span><b>${number(result.updated || 0)}</b>${t("importUpdated")}</span><span><b>${number(result.unchanged || 0)}</b>${t("importUnchanged")}</span><span class="${errors.length ? a.statDanger : ""}"><b>${number(result.errors || errors.length)}</b>${t("importErrors")}</span></div></div>${
+    errors.length
+      ? `<ul class="${a.importErrors}">${errors
+          .slice(0, 8)
+          .map(
+            (row) =>
+              `<li><b>${t("importRows")} ${number(row.row)}</b> ${esc(row.errors.join(" · "))}</li>`,
+          )
+          .join("")}</ul>`
+      : `<p class="${a.status}">${t("importReady")}</p>`
+  }${rows.length ? `<div class="${a.importActions}"><button type="button" class="${s.button} ${s.secondary}" id="download-import-result" onclick="this.dispatchEvent(new Event('clinic-download-import-result'))">${t("downloadImportResult")}</button></div>` : ""}</section>`;
+}
+const importResultColumns = ["row", "product_id", "action", "errors"];
+function bindImportResult(root, result, brand, signal) {
+  root.querySelector("#download-import-result")?.addEventListener(
+    "click",
+    () =>
+      downloadCsv(
+        `${fileName(brand.name_en)}-import-result.csv`,
+        (result.rows || []).map((row) => ({
+          row: row.row,
+          product_id: row.product_id || "",
+          action: row.action || "",
+          errors: (row.errors || []).join(" · "),
+        })),
+        importResultColumns,
+      ),
+    { signal },
+  );
+}
 export function adminPage(data, route, authState) {
   const c = route.parts[1];
-  if (c && ![...collections, "users"].includes(c)) return notFound();
+  if (c && ![...collections, "users", "images"].includes(c)) return notFound();
   const content = !c
     ? overview(data, authState)
-    : c === "users"
-      ? route.parts[2]
-        ? userEditor(authState.users || [], route)
-        : `${authState.usersError ? `<p id="admin-error" class="${s.error}" role="alert">${t("userError")} <button type="button" id="retry-users" class="${s.ghost}" onclick="this.dispatchEvent(new Event('clinic-retry-users'))">${t("retry")}</button></p>` : ""}${list(data, route, c, authState.users || [])}`
-      : route.parts[2]
-        ? ["new", "edit"].includes(route.parts[2])
-          ? editor(data, route, c)
-          : notFound()
-        : list(data, route, c);
-  return `<div class="${a.layout}">${sidebar(route, authState)}<section>${content}</section></div>`;
+    : c === "images"
+      ? imageLibrary()
+      : c === "users"
+        ? route.parts[2]
+          ? userEditor(authState.users || [], route)
+          : `${authState.usersError ? `<p id="admin-error" class="${s.error}" role="alert">${t("userError")} <button type="button" id="retry-users" class="${s.ghost}" onclick="this.dispatchEvent(new Event('clinic-retry-users'))">${t("retry")}</button></p>` : ""}${list(data, route, c, authState.users || [])}`
+        : route.parts[2]
+          ? ["new", "edit"].includes(route.parts[2])
+            ? editor(data, route, c)
+            : notFound()
+          : list(data, route, c);
+  const csvTools =
+    c === "companies"
+      ? `<input id="brand-import-file" type="file" accept=".csv,text/csv" hidden /><div id="brand-import-preview"></div>`
+      : "";
+  return `<div class="${a.layout}">${sidebar(route, authState)}<section>${content}${csvTools}</section></div>`;
 }
 const errorMessage = (error) => {
   const code = error?.code || error?.message;
@@ -143,10 +214,342 @@ const errorMessage = (error) => {
   if (code === "dimensions" || code === "invalid_image")
     return t("imageProcessingError");
   if (code === "timeout") return t("uploadTimeout");
+  if (code === "demo_import_unavailable") return t("importDemoUnavailable");
   return t("saveError");
 };
+async function copyText(value) {
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    const input = document.createElement("textarea");
+    input.value = value;
+    input.setAttribute("readonly", "true");
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    document.body.append(input);
+    input.select();
+    document.execCommand("copy");
+    input.remove();
+  }
+}
+function bindBrandCsv(root, data, signal, render) {
+  const fileInput = root.querySelector("#brand-import-file");
+  const previewRoot = root.querySelector("#brand-import-preview");
+  let pending = null;
+  root.querySelectorAll("[data-export-brand]").forEach((button) =>
+    button.addEventListener(
+      "click",
+      () => {
+        const brand = data.companies.find(
+          (item) => item.id === button.dataset.exportBrand,
+        );
+        if (!brand) return;
+        const products = data.products.filter(
+          (item) => item.company_id === brand.id,
+        );
+        downloadCsv(
+          `${fileName(brand.name_en)}-products.csv`,
+          productExportRows(brand, products),
+        );
+        notify(t("saved"));
+      },
+      { signal },
+    ),
+  );
+  root.querySelectorAll("[data-template-brand]").forEach((button) =>
+    button.addEventListener(
+      "click",
+      () => {
+        const brand = data.companies.find(
+          (item) => item.id === button.dataset.templateBrand,
+        );
+        if (!brand) return;
+        downloadCsv(
+          `${fileName(brand.name_en)}-products-template.csv`,
+          productTemplateRows(brand),
+        );
+      },
+      { signal },
+    ),
+  );
+  root.querySelectorAll("[data-import-brand]").forEach((button) =>
+    button.addEventListener(
+      "click",
+      () => {
+        if (!fileInput) return;
+        fileInput.dataset.brandId = button.dataset.importBrand;
+        fileInput.value = "";
+        fileInput.click();
+      },
+      { signal },
+    ),
+  );
+  fileInput?.addEventListener(
+    "change",
+    async () => {
+      const file = fileInput.files?.[0];
+      const brand = data.companies.find(
+        (item) => item.id === fileInput.dataset.brandId,
+      );
+      if (!file || !brand || !previewRoot) return;
+      if (file.size > 5 * 1024 * 1024) {
+        previewRoot.innerHTML = `<p class="${s.error}" role="alert">${t("importFailed")}</p>`;
+        return;
+      }
+      try {
+        const rows = importRows(parseCsv(await file.text()), brand);
+        if (rows.some((row) => row.brand_id && row.brand_id !== brand.id)) {
+          previewRoot.innerHTML = `<p class="${s.error}" role="alert">${t("importBrandMismatch")}</p>`;
+          return;
+        }
+        if (!rows.length) {
+          previewRoot.innerHTML = `<p class="${s.error}" role="alert">${t("importEmpty")}</p>`;
+          return;
+        }
+        previewRoot.innerHTML = `<p class="${a.status}">${t("loading")}</p>`;
+        const result = await importBrandProducts(brand.id, rows, true);
+        pending = result.ok ? { brand, rows } : null;
+        previewRoot.innerHTML = `${importPreview(result)}${result.ok ? `<div class="${a.importActions}"><button type="button" class="${s.button} ${s.primary}" id="apply-brand-import" onclick="this.dispatchEvent(new Event('clinic-apply-brand-import'))">${t("applyImport")}</button></div>` : ""}`;
+        bindImportResult(previewRoot, result, brand, signal);
+        previewRoot.querySelector("#apply-brand-import")?.addEventListener(
+          "click",
+          async (event) => {
+            if (!pending) return;
+            event.currentTarget.disabled = true;
+            try {
+              const applied = await importBrandProducts(
+                pending.brand.id,
+                pending.rows,
+                false,
+              );
+              pending = null;
+              if (!applied.ok) {
+                previewRoot.innerHTML = importPreview(applied);
+                return;
+              }
+              notify(t("importApplied"));
+              previewRoot.innerHTML = importPreview(applied);
+              bindImportResult(
+                previewRoot,
+                applied,
+                pending?.brand || brand,
+                signal,
+              );
+              await render();
+            } catch (error) {
+              event.currentTarget.disabled = false;
+              previewRoot.insertAdjacentHTML(
+                "afterbegin",
+                `<p class="${s.error}" role="alert">${esc(error?.message || t("importFailed"))}</p>`,
+              );
+            }
+          },
+          { signal },
+        );
+      } catch (error) {
+        previewRoot.innerHTML = `<p class="${s.error}" role="alert">${esc(error?.message || t("importFailed"))}</p>`;
+      }
+    },
+    { signal },
+  );
+}
+function bindBulkUploader(root, signal) {
+  const input = root.querySelector("#bulk-image-input");
+  const list = root.querySelector("#bulk-image-list");
+  const upload = root.querySelector("#bulk-image-upload");
+  const copyAll = root.querySelector("#bulk-copy-urls");
+  const downloadMap = root.querySelector("#bulk-download-map");
+  const count = root.querySelector("#bulk-image-count");
+  const status = root.querySelector("#bulk-image-status");
+  if (!input || !list) return;
+  const items = [];
+  let processing = false;
+  signal.addEventListener(
+    "abort",
+    () =>
+      items.forEach(
+        (item) => item.preview && URL.revokeObjectURL(item.preview),
+      ),
+    { once: true },
+  );
+  const render = () => {
+    count.textContent = items.length
+      ? `${number(items.length)} ${t("importRows")}`
+      : "";
+    const complete = items.filter((item) => item.url);
+    upload.disabled =
+      processing ||
+      !items.some(
+        (item) => item.status === "queued" || item.status === "error",
+      );
+    copyAll.disabled = !complete.length;
+    downloadMap.disabled = !complete.length;
+    list.innerHTML = items
+      .map(
+        (item, index) =>
+          `<article class="${a.uploadRow}" data-upload-row="${index}"><img src="${esc(item.preview)}" alt="" /><div class="${a.uploadMeta}"><strong title="${esc(item.file.name)}">${esc(item.file.name)}</strong><small>${number(Math.round(item.file.size / 1024))} KB · ${esc(item.statusLabel)}</small>${item.url ? `<code dir="ltr">${esc(item.url)}</code>` : ""}${item.error ? `<span class="${s.error}">${esc(item.error)}</span>` : ""}</div><div class="${a.uploadRowActions}">${item.url ? `<button type="button" class="${s.compactButton}" data-copy-upload="${index}" onclick="this.dispatchEvent(new Event('clinic-copy-upload'))">${t("copy")}</button>` : ""}${item.status === "error" ? `<button type="button" class="${s.compactButton}" data-retry-upload="${index}" onclick="this.dispatchEvent(new Event('clinic-retry-upload'))">${t("retry")}</button>` : ""}<button type="button" class="${s.iconButton}" data-remove-upload="${index}" aria-label="${t("cancel")}" onclick="this.dispatchEvent(new Event('clinic-remove-upload'))">${icon("close")}</button></div></article>`,
+      )
+      .join("");
+    list.querySelectorAll("[data-copy-upload]").forEach((button) =>
+      button.addEventListener("click", async () => {
+        await copyText(items[Number(button.dataset.copyUpload)].url);
+        notify(t("urlCopied"));
+      }),
+    );
+    list.querySelectorAll("[data-remove-upload]").forEach((button) =>
+      button.addEventListener("click", () => {
+        const [item] = items.splice(Number(button.dataset.removeUpload), 1);
+        if (item?.preview) URL.revokeObjectURL(item.preview);
+        render();
+      }),
+    );
+    list.querySelectorAll("[data-retry-upload]").forEach((button) =>
+      button.addEventListener("click", () => {
+        const item = items[Number(button.dataset.retryUpload)];
+        if (item) {
+          item.status = "queued";
+          item.statusLabel = t("imageQueued");
+          item.error = "";
+          render();
+        }
+      }),
+    );
+  };
+  const addFiles = (files) => {
+    for (const file of [...files].slice(0, Math.max(0, 100 - items.length))) {
+      items.push({
+        file,
+        preview: URL.createObjectURL(file),
+        status: "queued",
+        statusLabel: t("imageQueued"),
+        url: "",
+        error: "",
+      });
+    }
+    render();
+  };
+  input.addEventListener(
+    "change",
+    () => {
+      addFiles(input.files);
+      input.value = "";
+    },
+    { signal },
+  );
+  root.querySelector(`.${a.dropZone}`)?.addEventListener(
+    "dragover",
+    (event) => {
+      event.preventDefault();
+      event.currentTarget.classList.add(a.dragging);
+    },
+    { signal },
+  );
+  root
+    .querySelector(`.${a.dropZone}`)
+    ?.addEventListener(
+      "dragleave",
+      (event) => event.currentTarget.classList.remove(a.dragging),
+      { signal },
+    );
+  root.querySelector(`.${a.dropZone}`)?.addEventListener(
+    "drop",
+    (event) => {
+      event.preventDefault();
+      event.currentTarget.classList.remove(a.dragging);
+      addFiles(event.dataTransfer.files);
+    },
+    { signal },
+  );
+  const processQueue = async () => {
+    if (processing) return;
+    const queue = items.filter(
+      (item) => item.status === "queued" || item.status === "error",
+    );
+    if (!queue.length) return;
+    processing = true;
+    render();
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < queue.length) {
+        const item = queue[cursor++];
+        item.status = "preparing";
+        item.statusLabel = t("imagePreparing");
+        item.error = "";
+        render();
+        let prepared;
+        try {
+          prepared = await prepareImage(item.file, { signal });
+          item.statusLabel = t("uploading");
+          render();
+          const result = await uploadImage(prepared, { signal });
+          item.url = result.url;
+          item.status = "success";
+          item.statusLabel = t("imageUploaded");
+          releaseImage(prepared);
+        } catch (error) {
+          item.status = "error";
+          item.statusLabel = t("imageUploadError");
+          item.error = errorMessage(error);
+          if (prepared) releaseImage(prepared);
+        }
+        render();
+      }
+    };
+    try {
+      await Promise.all([worker(), worker(), worker()]);
+      status.textContent = t("imageUploaded");
+    } finally {
+      processing = false;
+      render();
+    }
+  };
+  upload.addEventListener("click", () => processQueue(), { signal });
+  root.querySelector(`.${a.dropZone}`)?.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      input.click();
+    },
+    { signal },
+  );
+  copyAll.addEventListener(
+    "click",
+    async () => {
+      await copyText(
+        items
+          .filter((item) => item.url)
+          .map((item) => item.url)
+          .join("\n"),
+      );
+      notify(t("urlsCopied"));
+    },
+    { signal },
+  );
+  downloadMap.addEventListener(
+    "click",
+    () => {
+      const rows = items
+        .filter((item) => item.url)
+        .map((item, index) => ({
+          position: index + 1,
+          original_filename: item.file.name,
+          image_url: item.url,
+        }));
+      downloadCsv("clinic-image-map.csv", rows, [
+        "position",
+        "original_filename",
+        "image_url",
+      ]);
+    },
+    { signal },
+  );
+  render();
+}
 export function bindAdmin(root, data, route, context) {
   const { signal, render, navigate, authState } = context;
+  if (route.parts[1] === "images") bindBulkUploader(root, signal);
+  if (route.parts[1] === "companies") bindBrandCsv(root, data, signal, render);
   root.querySelectorAll("[data-delete]").forEach((btn) =>
     btn.addEventListener(
       "click",
@@ -378,8 +781,8 @@ function bindEditor(root, form, data, context) {
           qty: values.qty === "" ? null : Number(values.qty),
           discount: values.discount === "" ? null : Number(values.discount),
           product_url: values.product_url
-            ? safeExternalUrl(values.product_url.trim())
-            : "",
+            ? safeExternalUrl(values.product_url.trim()) || null
+            : null,
         });
       if (c === "offers")
         Object.assign(record, {

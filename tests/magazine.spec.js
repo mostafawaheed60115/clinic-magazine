@@ -40,6 +40,15 @@ test("localization dictionaries have complete parity", () => {
   );
 });
 
+test("brand tiles keep the localized name visible beside the mark", async ({
+  page,
+}) => {
+  await page.goto("/#/brands");
+  const firstBrand = page.locator('a[href^="#/brand/"]').first();
+  await expect(firstBrand.locator("strong")).toBeVisible();
+  await expect(firstBrand.locator("strong")).not.toHaveText("");
+});
+
 test("direct /admin entry reaches the authenticated admin panel", async ({
   page,
 }) => {
@@ -53,6 +62,24 @@ test("direct /admin entry reaches the authenticated admin panel", async ({
   await page.locator("#login-form button[type=submit]").click();
   await expect(page.locator("aside")).toBeVisible();
   await expect(page.locator("h1")).toHaveText("نظرة عامة");
+});
+
+test("admin image library is keyboard-accessible and mobile-safe", async ({
+  page,
+}) => {
+  await english(page);
+  await login(page);
+  await page.goto("/#/admin/images");
+  await expect(page.locator("h1")).toHaveText("Image library");
+  await expect(
+    page.locator('[role="button"][aria-controls="bulk-image-input"]'),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("Arabic default, carousel, language and keyboard", async ({ page }) => {

@@ -12,7 +12,9 @@ PRODUCT.md records the user-approved requirements including the 2026-09-20 authe
 | Form           | src/admin.js editor           | UX-CONTRACT.md  | Create and edit        | tests/magazine.spec.js |
 | Scrollbar      | src/styles/tokens.css         | DESIGN.md       | Global baseline        | tests/magazine.spec.js |
 | Toast          | src/ui.js notify              | UX-CONTRACT.md  | Success and info       | tests/magazine.spec.js |
-| CRUD           | src/store.js and src/admin.js | PRODUCT.md      | Three collections      | tests/magazine.spec.js |
+| CRUD           | src/store.js and src/admin.js | PRODUCT.md      | Three collections plus bulk product import | tests/magazine.spec.js |
+| CSV import/export | src/csv.js and import_brand_products RPC | PRODUCT.md | Per-brand product export, template, preview/apply | tests/adapters.spec.js |
+| Image library  | src/admin.js bulk uploader | PRODUCT.md | Bounded concurrent upload, copyable URLs, mapping CSV | tests/magazine.spec.js |
 | Dialog         | src/ui.js ask                 | UX-CONTRACT.md  | Delete, reset, discard | tests/magazine.spec.js |
 
 ## Flows
@@ -22,6 +24,8 @@ Initial route is sign-in for unauthenticated visitors; direct protected links re
 ## Data and storage
 
 Supabase owns production companies, products, offers, users, admin membership, and catalog images. RLS denies anonymous catalog access and authorizes active members to read; only admins may write catalog content or upload to the `clinic-images` Storage bucket. Company parent and product/offer foreign keys have indexes. Revision checks prevent stale overwrites. Referenced companies cannot be deleted. No plaintext application password columns. Failed upload or database write preserves the editor with an actionable error; saving must not report success until the link is persisted. IndexedDB exists only in explicitly selected demo mode and never substitutes for failed Supabase calls.
+
+Brand product CSVs use a versioned schema with product ID and revision as the preferred update key and normalized English name as the fallback. Blank cells preserve existing values; a supplied image URL replaces the current image URL. Imports are validated in a dry-run RPC before an atomic apply, capped at 5 MB/5,000 rows, scoped to the selected brand, and reject stale revisions, duplicate keys, cross-brand IDs, invalid HTTPS URLs, and formula-injection values are escaped on export.
 
 ## Form and feedback
 

@@ -5,6 +5,7 @@ import {
   readCatalog,
   saveCatalogItem,
   deleteCatalogItem,
+  importBrandProducts as importBrandProductsRemote,
 } from "./cloud.js";
 
 export const collections = demoStore.collections;
@@ -102,6 +103,22 @@ export async function deleteItem(collection, id, revision) {
   await deleteCatalogItem(collection, id, revision);
   invalidateCatalogCache();
   channel?.postMessage("updated");
+}
+
+export async function importBrandProducts(companyId, rows, dryRun = true) {
+  await requireSession();
+  if (isDemoMode()) {
+    const error = new Error("CSV imports require the connected Clinic account");
+    error.code = "demo_import_unavailable";
+    throw error;
+  }
+  if (!hasCloudConfig()) throw unconfigured();
+  const result = await importBrandProductsRemote(companyId, rows, dryRun);
+  if (!dryRun && result?.ok !== false) {
+    invalidateCatalogCache();
+    channel?.postMessage("updated");
+  }
+  return result;
 }
 
 export async function resetStore() {
