@@ -460,18 +460,6 @@
   letter-spacing: 0.06em;
   font-weight: 700;
 }
-.brandTile small {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 16px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  color: var(--primary-deep);
-}
-.brandTile small svg {
-  width: 14px;
-}
 .demoNotice {
   font-size: 11px;
   color: var(--muted);
@@ -1063,8 +1051,8 @@
   position: relative;
 }
 .loginPanelLogo {
-  width: 130px;
-  height: 130px;
+  width: 140px;
+  height: 140px;
   object-fit: contain;
   margin-block-end: 20px;
   margin-inline: auto;
@@ -1283,8 +1271,8 @@ html[lang="ar"] .loginPanel h1 {
     padding: 76px 20px 32px;
   }
   .loginPanelLogo {
-    width: 78px;
-    height: 78px;
+    width: 104px;
+    height: 104px;
     margin-block-end: 16px;
   }
   .loginPanel {
@@ -1382,8 +1370,8 @@ html[lang="ar"] .loginPanel h1 {
     padding: 30px 18px 34px;
   }
   .loginPanelLogo {
-    width: 70px;
-    height: 70px;
+    width: 90px;
+    height: 90px;
   }
   .loginPanel h1 {
     font-size: 31px;
@@ -1414,7 +1402,7 @@ html[lang="ar"] .loginPanel h1 {
   content: "";
   inset: 10px;
   border: 1px solid rgb(255 255 255 / 0.22);
-  border-radius: 11px;
+  border-radius: 12px;
   pointer-events: none;
   transform: translateZ(2px);
 }
@@ -1449,8 +1437,7 @@ html[lang="ar"] .loginPanel h1 {
   pointer-events: none;
   transform: translateZ(2px);
 }
-.brandIdentity,
-.brandTile small {
+.brandIdentity {
   position: relative;
   transform: translateZ(12px);
 }
@@ -1578,4 +1565,453 @@ html[lang="ar"] .loginPanel h1 {
   box-shadow:
     0 12px 24px rgb(47 116 72 / 0.24),
     inset 0 1px 0 rgb(255 255 255 / 0.2);
+}
+
+/* Shared navigation: a tactile paper-and-green control rail, not a floating glass bar. */
+.header {
+  position: relative;
+  z-index: 5;
+  min-height: 142px;
+  border-bottom-color: rgb(212 222 214 / 0.92);
+  background: linear-gradient(
+    145deg,
+    rgb(255 253 249 / 0.98),
+    rgb(248 247 239 / 0.96)
+  );
+  box-shadow:
+    0 8px 20px rgb(30 51 40 / 0.06),
+    0 1px 0 rgb(255 255 255 / 0.9) inset;
+  backdrop-filter: blur(12px);
+}
+.headerInner {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+.logo img {
+  transform-origin: 50% 62%;
+}
+.nav {
+  gap: clamp(8px, 1.7vw, 22px);
+  transform-style: preserve-3d;
+}
+.nav a {
+  min-height: 46px;
+  padding-inline: 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  transition:
+    color 180ms var(--ease-spring),
+    background 180ms var(--ease-spring),
+    border-color 180ms var(--ease-spring),
+    box-shadow 180ms var(--ease-spring),
+    transform 220ms var(--ease-spring);
+}
+.nav a::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 26%,
+    rgb(255 255 255 / 0.56) 48%,
+    transparent 70%
+  );
+  background-position: 100% 0;
+  background-size: 220% 100%;
+  pointer-events: none;
+  transition: background-position 480ms var(--ease);
+}
+.nav a[aria-current="page"] {
+  border-color: rgb(212 222 214 / 0.94);
+  background: linear-gradient(155deg, #fffefa, var(--surface-tint));
+  box-shadow:
+    0 5px 12px rgb(30 51 40 / 0.08),
+    inset 0 1px 0 var(--edge-highlight),
+    inset 0 -1px 0 rgb(30 51 40 / 0.035);
+}
+.nav a[aria-current="page"]::after {
+  bottom: 3px;
+  left: 14px;
+  right: 14px;
+  height: 2px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgb(67 154 98 / 0.24);
+}
+.headerTools {
+  gap: 9px;
+  transform-style: preserve-3d;
+}
+.locale,
+.headerSearch {
+  min-height: 46px;
+  border: 1px solid rgb(212 222 214 / 0.88);
+  border-radius: 12px;
+  background: linear-gradient(155deg, #fffefa, #f5f4ec);
+  box-shadow:
+    var(--elevation-1),
+    inset 0 1px 0 var(--edge-highlight);
+  transition:
+    color 180ms var(--ease-spring),
+    border-color 180ms var(--ease-spring),
+    box-shadow 180ms var(--ease-spring),
+    transform 180ms var(--ease-spring),
+    background 180ms var(--ease-spring);
+}
+.locale {
+  padding-inline: 12px;
+}
+.locale:hover {
+  text-decoration: none;
+}
+.headerSearch {
+  width: 46px;
+  min-height: 46px;
+  justify-content: center;
+  border-inline-start: 1px solid rgb(212 222 214 / 0.88);
+  padding: 0;
+}
+.headerSearch svg {
+  width: 19px;
+  height: 19px;
+}
+.headerSearch:hover {
+  text-decoration: none;
+}
+.brandShowcase {
+  min-width: 0;
+  padding-block-end: 12px;
+}
+.brandShowcase .breadcrumbs {
+  padding-block: 25px 16px;
+  gap: 10px;
+}
+.brandHero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(150px, 190px) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(22px, 4vw, 54px);
+  min-height: 224px;
+  margin-block: 0 28px;
+  padding: clamp(24px, 4vw, 48px);
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: var(--radius);
+  color: var(--paper);
+  background:
+    radial-gradient(
+      ellipse at 18% 16%,
+      rgb(117 175 142 / 0.3),
+      transparent 29rem
+    ),
+    linear-gradient(128deg, #1e3328 0%, var(--primary-deep) 55%, #2f7448 100%);
+  box-shadow:
+    var(--elevation-3),
+    inset 0 1px 0 rgb(255 255 255 / 0.2);
+  animation: brandHeroArrive 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.brandHero::after {
+  position: absolute;
+  z-index: -1;
+  inset-block: -48%;
+  inset-inline-end: 5%;
+  width: min(38vw, 440px);
+  min-width: 230px;
+  content: "";
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle,
+    transparent 0 34px,
+    rgb(255 253 249 / 0.1) 35px 36px,
+    transparent 37px 54px
+  );
+  pointer-events: none;
+}
+.brandHero > * {
+  position: relative;
+  z-index: 1;
+}
+.brandBadge {
+  width: auto;
+  min-height: 0;
+  aspect-ratio: 1;
+  padding: 18px;
+  border-color: rgb(255 255 255 / 0.72);
+  border-radius: 20px;
+  background: linear-gradient(145deg, #fffefa, #f1f4ed);
+  box-shadow:
+    var(--elevation-3),
+    inset 0 1px 0 #fff;
+  transform-style: preserve-3d;
+  transition:
+    transform 300ms var(--ease-spring),
+    box-shadow 300ms var(--ease-spring);
+}
+.brandHeroContent {
+  min-width: 0;
+}
+.brandHero h1 {
+  max-width: 16ch;
+  color: var(--paper);
+  font-size: clamp(34px, 4.4vw, 52px);
+  font-weight: 700;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+.brandHero p {
+  max-width: 52ch;
+  margin-block: 9px 15px;
+  color: rgb(255 253 249 / 0.78);
+  font-size: 14px;
+}
+.brandHeroContent > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: 100%;
+  padding-inline: 12px;
+  border: 1px solid rgb(255 253 249 / 0.25);
+  border-radius: 10px;
+  color: var(--paper);
+  background: rgb(255 253 249 / 0.1);
+  transition:
+    background 180ms var(--ease-spring),
+    border-color 180ms var(--ease-spring),
+    transform 180ms var(--ease-spring);
+}
+.brandShowcase .toolbar {
+  align-items: center;
+  gap: 18px;
+  margin-block: 0 20px;
+}
+.brandShowcase .toolbar > form {
+  width: min(100%, 680px);
+  flex: 1 1 420px;
+}
+.brandShowcase .count {
+  flex: 0 0 auto;
+  padding: 8px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--primary-deep);
+  background: var(--paper);
+  box-shadow: inset 0 1px 0 var(--edge-highlight);
+  font-size: 12px;
+  font-weight: 650;
+}
+.brandShowcase .brandProductEmpty {
+  display: flex;
+  min-height: 196px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-block: 0 28px;
+  padding: 30px 20px;
+  border-style: solid;
+  border-color: rgb(212 222 214 / 0.86);
+  background:
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgb(207 228 212 / 0.64),
+      transparent 76%
+    ),
+    linear-gradient(155deg, #fffefa, #f7f6ef);
+}
+.brandShowcase .brandProductEmpty > svg {
+  width: 32px;
+  height: 32px;
+  margin-block: 0 12px;
+  color: var(--primary-deep);
+}
+.brandShowcase .brandProductEmpty h2 {
+  font-size: clamp(20px, 2.2vw, 25px);
+}
+.brandShowcase .brandProductEmpty p {
+  max-width: 48ch;
+  margin-block: 8px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.brandShowcase .note {
+  margin-block-start: 16px;
+}
+
+@keyframes brandHeroArrive {
+  from {
+    opacity: 0.86;
+    filter: blur(3px);
+    transform: translateY(10px) translateZ(-12px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .logo:hover img {
+    transform: perspective(700px) rotateX(4deg) rotateY(-8deg) rotate(-2deg)
+      scale(1.035);
+    filter: drop-shadow(0 13px 17px rgb(47 116 72 / 0.22));
+  }
+  .nav a:hover {
+    z-index: 1;
+    border-color: rgb(212 222 214 / 0.8);
+    color: var(--primary-deep);
+    background: linear-gradient(150deg, #fffefa, #f0f5ef);
+    box-shadow:
+      0 7px 14px rgb(30 51 40 / 0.1),
+      inset 0 1px 0 var(--edge-highlight);
+    transform: perspective(650px) translateY(-3px) rotateX(7deg);
+  }
+  .nav a:hover::before {
+    background-position: 0 0;
+  }
+  .locale:hover,
+  .headerSearch:hover {
+    border-color: rgb(117 175 142 / 0.8);
+    color: var(--primary-deep);
+    background: linear-gradient(150deg, #fffefa, var(--surface-tint));
+    box-shadow:
+      var(--elevation-2),
+      inset 0 1px 0 var(--edge-highlight);
+    transform: perspective(650px) translateY(-2px) rotateX(5deg);
+  }
+  .brandBadge:hover {
+    box-shadow:
+      0 22px 38px rgb(16 39 26 / 0.3),
+      inset 0 1px 0 #fff;
+    transform: perspective(900px) translateY(-3px) rotateX(4deg) rotateY(-4deg)
+      translateZ(8px);
+  }
+  .brandHeroContent > a:hover {
+    border-color: rgb(255 253 249 / 0.44);
+    background: rgb(255 253 249 / 0.18);
+    transform: translateY(-2px);
+  }
+}
+.nav a:active,
+.locale:active,
+.headerSearch:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+@media (max-width: 1000px) {
+  .header {
+    min-height: 132px;
+  }
+  .brandHero {
+    grid-template-columns: minmax(136px, 170px) minmax(0, 1fr);
+  }
+}
+@media (max-width: 680px) {
+  .header {
+    min-height: 138px;
+  }
+  .headerInner {
+    gap: 10px;
+    padding-block: 14px 12px;
+  }
+  .nav {
+    gap: clamp(10px, 4vw, 24px);
+  }
+  .nav a {
+    min-height: 44px;
+    padding-inline: 10px;
+  }
+  .nav a[aria-current="page"]::after {
+    bottom: 2px;
+    left: 10px;
+    right: 10px;
+  }
+  .headerTools {
+    gap: 5px;
+  }
+  .locale {
+    min-height: 44px;
+    padding-inline: 8px;
+    gap: 6px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+  .brandShowcase .breadcrumbs {
+    padding-block: 18px 12px;
+  }
+  .brandHero {
+    grid-template-columns: minmax(88px, 112px) minmax(0, 1fr);
+    gap: clamp(12px, 3vw, 20px);
+    min-height: 156px;
+    margin-block-end: 20px;
+    padding: clamp(16px, 4vw, 24px);
+    border-radius: var(--radius);
+  }
+  .brandBadge {
+    padding: 12px;
+    border-radius: var(--radius);
+  }
+  .brandHero h1 {
+    font-size: clamp(26px, 7vw, 36px);
+    line-height: 1.4;
+  }
+  .brandHero p {
+    margin-block: 6px 10px;
+    font-size: 12px;
+  }
+  .brandHeroContent > a {
+    min-height: 42px;
+    padding-inline: 9px;
+    font-size: 13px;
+  }
+  .brandShowcase .toolbar {
+    gap: 10px;
+    margin-block-end: 14px;
+  }
+  .brandShowcase .toolbar > form {
+    flex-basis: 100%;
+  }
+  .brandShowcase .count {
+    align-self: flex-start;
+  }
+  .brandShowcase .brandProductEmpty {
+    min-height: 168px;
+    margin-block-end: 20px;
+    padding: 23px 16px;
+  }
+  .brandShowcase .brandProductEmpty p {
+    font-size: 13px;
+  }
+}
+@media (max-width: 420px) {
+  .headerTools .locale {
+    padding-inline: 7px;
+    font-size: 11px;
+  }
+  .brandHero {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 11px;
+    padding: 14px;
+  }
+  .brandBadge {
+    padding: 9px;
+  }
+}
+@media (max-width: 360px) {
+  .headerInner {
+    padding-inline: 12px;
+  }
+  .nav {
+    gap: 8px;
+  }
+  .nav a {
+    padding-inline: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brandHero {
+    animation: none;
+  }
 }

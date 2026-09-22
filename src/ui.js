@@ -69,8 +69,12 @@ export function hydrateImages(root) {
     ),
   );
 }
-export function empty(title = "empty", description = "emptyText") {
-  return `<section class="${s.empty}">${icon("search")}<h2>${t(title)}</h2><p>${t(description)}</p></section>`;
+export function empty(
+  title = "empty",
+  description = "emptyText",
+  modifier = "",
+) {
+  return `<section class="${s.empty} ${modifier}">${icon("search")}<h2>${t(title)}</h2><p>${t(description)}</p></section>`;
 }
 export function searchBox(value, placeholder) {
   return `<form id="search-form" class="${s.search}" role="search" novalidate><label class="${s.srOnly}" for="catalog-search">${t(placeholder)}</label>${icon("search")}<input id="catalog-search" type="search" name="q" value="${esc(value)}" placeholder="${t(placeholder)}" autocomplete="off" /><button class="${s.iconButton}" type="button" id="clear-search" aria-label="${t("clear")}" ${!value ? "hidden" : ""}>${icon("close")}</button><button class="${s.srOnly}" type="submit">${t("search")}</button></form>`;
