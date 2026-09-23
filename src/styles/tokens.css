@@ -9,7 +9,7 @@
   --z-sheet: 700;
   --z-toast: 900;
   /* A soft orchid canvas keeps the botanical green controls legible. */
-  --background: #faebf8;
+  --background: #fcf7fc;
   --primary: #75af8e;
   --primary-deep: #2f7448;
   --ink: #1e3328;
@@ -53,8 +53,8 @@
   --surface-gradient: linear-gradient(135deg, #fffdf9 0%, #f3efe6 100%);
   --wash-gradient: linear-gradient(
     135deg,
-    #faebf8 0%,
-    #fdf4fb 58%,
+    #fcf7fc 0%,
+    #fdf6fc 58%,
     #fffdf9 100%
   );
   --ease: cubic-bezier(0.16, 1, 0.3, 1);

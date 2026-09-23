@@ -65,7 +65,7 @@ test("exclusive brands, product table and consultation settings work together", 
   ).toBe("contain");
   expect(
     await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
-  ).toBe("rgb(250, 235, 248)");
+  ).toBe("rgb(252, 247, 252)");
   const initialConsultation = page.getByRole("link", {
     name: "Ask for medical consultant",
   });

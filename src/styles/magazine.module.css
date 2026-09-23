@@ -2293,6 +2293,8 @@ html[lang="ar"] .loginPanel h1 {
 .productTableWrap {
   max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--paper);
@@ -2313,10 +2315,17 @@ html[lang="ar"] .loginPanel h1 {
   vertical-align: middle;
 }
 .productTable th {
+  position: sticky;
+  z-index: 1;
+  inset-block-start: 0;
   color: var(--muted);
   background: var(--surface-tint);
   font-size: 12px;
   font-weight: 750;
+}
+.productTableWrap:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 4px;
 }
 .productTable tbody tr:last-child td {
   border-block-end: 0;
@@ -2405,6 +2414,10 @@ html[lang="ar"] .loginPanel h1 {
 .productTableAction:hover {
   border-color: var(--primary);
   background: var(--surface-tint);
+  transform: translateY(-1px);
+}
+.productTableAction:active {
+  transform: translateY(1px);
 }
 .productTableAction svg {
   width: 16px;
@@ -2523,5 +2536,22 @@ html[dir="rtl"] .consultationButton {
   .consultationButton:hover,
   .consultationButton:active {
     transform: none;
+  }
+}
+@media (max-width: 360px) {
+  .consultationButton {
+    width: 52px;
+    max-width: 52px;
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
+  }
+  .consultationButton span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 }
