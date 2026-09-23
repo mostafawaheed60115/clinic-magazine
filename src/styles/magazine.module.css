@@ -2059,3 +2059,229 @@ html[lang="ar"] .loginPanel h1 {
     height: 42px;
   }
 }
+
+/* Lift the two catalog discovery links into a shared, tactile CTA family. */
+.textLink,
+.footerExploreLink {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 0 17px;
+  border: 1px solid rgb(212 222 214 / 0.96);
+  border-radius: 13px;
+  color: var(--primary-deep);
+  background: linear-gradient(145deg, #fffefa, #eaf3ec);
+  box-shadow:
+    0 5px 0 #c8dccd,
+    0 11px 20px rgb(30 51 40 / 0.1),
+    inset 0 1px 0 var(--edge-highlight);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-decoration: none;
+  transform: perspective(850px) translateY(0) translateZ(0);
+  transform-style: preserve-3d;
+  transition:
+    transform 220ms var(--ease-spring),
+    color 180ms var(--ease-spring),
+    border-color 180ms var(--ease-spring),
+    background 180ms var(--ease-spring),
+    box-shadow 220ms var(--ease-spring);
+}
+.textLink::after,
+.footerExploreLink::after {
+  position: absolute;
+  z-index: 0;
+  inset: 2px;
+  content: "";
+  border: 1px solid rgb(255 255 255 / 0.74);
+  border-radius: 10px;
+  pointer-events: none;
+}
+.textLink > svg,
+.footerExploreLink > svg {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  transition: filter 180ms var(--ease-spring);
+}
+.textLink:hover,
+.footerExploreLink:hover {
+  text-decoration: none;
+}
+.textLink:focus-visible,
+.footerExploreLink:focus-visible {
+  outline: 3px solid rgb(117 175 142 / 0.42);
+  outline-offset: 4px;
+}
+
+.header {
+  background:
+    radial-gradient(
+      ellipse at 84% 0%,
+      rgb(220 235 224 / 0.38),
+      transparent 34rem
+    ),
+    linear-gradient(145deg, rgb(255 253 249 / 0.99), rgb(248 247 239 / 0.97));
+  box-shadow:
+    0 13px 30px rgb(30 51 40 / 0.075),
+    0 1px 0 rgb(255 255 255 / 0.95) inset;
+}
+.header::after {
+  position: absolute;
+  inset-inline: clamp(16px, 4.3vw, 64px);
+  bottom: 0;
+  height: 2px;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(117 175 142 / 0.56) 24%,
+    var(--accent) 50%,
+    rgb(117 175 142 / 0.56) 76%,
+    transparent
+  );
+  pointer-events: none;
+}
+.header .logo {
+  transition: transform 220ms var(--ease-spring);
+}
+.header .logo:focus-visible,
+.header .nav a:focus-visible,
+.header .locale:focus-visible,
+.header .headerSearch:focus-visible {
+  outline: 3px solid rgb(117 175 142 / 0.42);
+  outline-offset: 4px;
+}
+
+.footer {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-top: 1px solid rgb(255 255 255 / 0.18);
+  background:
+    radial-gradient(
+      ellipse at 88% 0%,
+      rgb(117 175 142 / 0.38),
+      transparent 30rem
+    ),
+    linear-gradient(132deg, #182e23 0%, #245b39 54%, #2f7448 100%);
+  box-shadow: 0 -14px 36px rgb(30 51 40 / 0.09);
+}
+.footer::before {
+  position: absolute;
+  z-index: -1;
+  inset-block-start: -19rem;
+  inset-inline-end: -8rem;
+  width: min(45vw, 34rem);
+  min-width: 18rem;
+  aspect-ratio: 1;
+  content: "";
+  border: 1px solid rgb(255 253 249 / 0.15);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 24px rgb(255 253 249 / 0.045),
+    0 0 0 49px rgb(255 253 249 / 0.035),
+    0 0 0 76px rgb(255 253 249 / 0.025);
+  pointer-events: none;
+}
+.footerInner {
+  position: relative;
+  z-index: 1;
+}
+.footerTop {
+  padding-block-end: 32px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.16);
+}
+.footerBottom {
+  padding-block-start: 18px;
+  border-top: 0;
+}
+.footer .footerExploreLink {
+  border-color: rgb(255 255 255 / 0.86);
+  color: var(--ink);
+  background: linear-gradient(145deg, #fffefa, #dcebe0);
+  box-shadow:
+    0 5px 0 rgb(15 39 25 / 0.46),
+    0 14px 26px rgb(10 29 18 / 0.24),
+    inset 0 1px 0 #fff;
+}
+.footer .footerExploreLink::after {
+  border-color: rgb(255 255 255 / 0.72);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .header .logo:hover {
+    transform: perspective(700px) translateY(-2px) rotateX(3deg);
+  }
+  .textLink:hover,
+  .footer .footerExploreLink:hover {
+    border-color: rgb(117 175 142 / 0.96);
+    background: linear-gradient(145deg, #fffefa, #d4e8d9);
+    box-shadow:
+      0 8px 0 #b8d2bf,
+      0 18px 28px rgb(30 51 40 / 0.16),
+      inset 0 1px 0 #fff;
+    transform: perspective(850px) translateY(-4px) rotateX(8deg) translateZ(2px);
+  }
+  .footer .footerExploreLink:hover {
+    border-color: #fff;
+    color: var(--ink);
+    background: linear-gradient(145deg, #fffefa, #eaf3ec);
+    box-shadow:
+      0 8px 0 rgb(15 39 25 / 0.46),
+      0 20px 32px rgb(10 29 18 / 0.3),
+      inset 0 1px 0 #fff;
+  }
+}
+.textLink:active,
+.footer .footerExploreLink:active {
+  box-shadow:
+    0 2px 0 #b8d2bf,
+    0 5px 10px rgb(30 51 40 / 0.1),
+    inset 0 1px 0 #fff;
+  transform: perspective(850px) translateY(2px) rotateX(-2deg);
+}
+
+@media (max-width: 680px) {
+  .textLink,
+  .footer .footerExploreLink {
+    min-height: 48px;
+    padding-inline: 12px;
+    font-size: 12px;
+  }
+  .textLink {
+    max-width: none;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .footer .footerExploreLink {
+    display: inline-flex;
+    margin-block-start: 22px;
+  }
+}
+@media (max-width: 420px) {
+  .textLink {
+    gap: 7px;
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .header .logo,
+  .header .logo:hover,
+  .textLink,
+  .textLink:hover,
+  .textLink:active,
+  .footer .footerExploreLink,
+  .footer .footerExploreLink:hover,
+  .footer .footerExploreLink:active {
+    transition: none;
+    transform: none;
+  }
+}

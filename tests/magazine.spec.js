@@ -49,6 +49,77 @@ test("brand tiles keep the localized name visible beside the mark", async ({
   await expect(firstBrand.locator("strong")).not.toHaveText("");
 });
 
+test("brand discovery links lift on hover and keep their destinations on mobile", async ({
+  page,
+}) => {
+  await english(page);
+  await page.goto("/#/offers");
+
+  const sectionLink = page.locator('main section a[href="#/brands"]');
+  await expect(sectionLink).toBeVisible();
+  await sectionLink.scrollIntoViewIfNeeded();
+  const restingTransform = await sectionLink.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  await sectionLink.hover();
+  await page.waitForTimeout(250);
+  const liftedTransform = await sectionLink.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  expect(liftedTransform).not.toBe(restingTransform);
+  await sectionLink.click();
+  await expect(page).toHaveURL(/#\/brands$/);
+  await expect(page.locator("h1")).toHaveText("All brands");
+
+  await page.goto("/#/offers");
+  const desktopFooterLink = page.locator('footer a[href="#/brands"]');
+  await desktopFooterLink.scrollIntoViewIfNeeded();
+  const footerRestingTransform = await desktopFooterLink.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  await desktopFooterLink.hover();
+  await page.waitForTimeout(250);
+  const footerLiftedTransform = await desktopFooterLink.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
+  expect(footerLiftedTransform).not.toBe(footerRestingTransform);
+  await desktopFooterLink.click();
+  await expect(page).toHaveURL(/#\/brands$/);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/#/offers");
+  await page.evaluate(() => document.fonts.ready);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  const footerLink = page.locator('footer a[href="#/brands"]');
+  await expect(footerLink).toHaveText("Explore brands");
+  await footerLink.scrollIntoViewIfNeeded();
+  const footerBox = await footerLink.boundingBox();
+  expect(footerBox.x).toBeGreaterThanOrEqual(0);
+  expect(footerBox.x + footerBox.width).toBeLessThanOrEqual(390);
+  await footerLink.click();
+  await expect(page).toHaveURL(/#\/brands$/);
+  await expect(page.locator("h1")).toHaveText("All brands");
+
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/#/offers");
+  const smallScreenOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth,
+  );
+  expect(smallScreenOverflow).toBe(false);
+  const reducedMotionLink = page.locator('main section a[href="#/brands"]');
+  await reducedMotionLink.hover();
+  expect(
+    await reducedMotionLink.evaluate(
+      (element) => getComputedStyle(element).transform,
+    ),
+  ).toBe("none");
+});
+
 test("direct /admin entry reaches the authenticated admin panel", async ({
   page,
 }) => {
