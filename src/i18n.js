@@ -87,6 +87,7 @@ const ar = {
   sessionLoading: "جارٍ التحقق من الجلسة…",
   sessionExpired: "انتهت الجلسة. سجّل الدخول مجددًا للمتابعة.",
   overview: "نظرة عامة",
+  adminMenu: "القائمة",
   manage: "إدارة",
   add: "إضافة",
   edit: "تعديل",
@@ -198,6 +199,19 @@ const ar = {
   importReady: "المعاينة جاهزة. راجع النتائج قبل التطبيق.",
   importApplied: "تم استيراد المنتجات بنجاح",
   importFailed: "تعذّر استيراد الملف. لم يتم تغيير أي منتج.",
+  importFileTooLarge: "حجم ملف CSV أكبر من 5 ميجابايت.",
+  importPayloadTooLarge:
+    "بيانات الاستيراد كبيرة بعد تجهيزها. قسّم الملف إلى ملفات أصغر.",
+  importTooManyRows: "يحتوي الملف على أكثر من 5000 صف. قسّمه إلى ملفات أصغر.",
+  csvEncodingError:
+    "تعذّر قراءة ترميز الملف. أعد حفظه بصيغة CSV UTF-8 أو UTF-16.",
+  csvEmptyError: "ملف CSV فارغ.",
+  csvEmptyHeaderError: "يوجد اسم عمود فارغ في الملف.",
+  csvDuplicateHeaderError: "توجد أسماء أعمدة مكررة في الملف.",
+  csvMissingColumnsError:
+    "أعمدة الاستيراد المطلوبة غير مكتملة. استخدم قالب Clinic دون تغيير أسماء الأعمدة.",
+  csvExtraFieldsError: "أحد الصفوف يحتوي على حقول أكثر من عناوين الأعمدة.",
+  csvUnfinishedQuoteError: "يوجد اقتباس غير مكتمل في أحد حقول CSV.",
   importDemoUnavailable: "استيراد CSV متاح للحساب المتصل فقط.",
   importRows: "صفوف",
   importCreated: "جديد",
@@ -295,6 +309,7 @@ const en = {
   sessionLoading: "Checking your session…",
   sessionExpired: "Your session expired. Sign in again to continue.",
   overview: "Overview",
+  adminMenu: "Menu",
   manage: "Manage",
   add: "Add",
   edit: "Edit",
@@ -409,6 +424,20 @@ const en = {
   importReady: "Preview ready. Review the results before applying.",
   importApplied: "Products imported successfully",
   importFailed: "The file could not be imported. No products were changed.",
+  importFileTooLarge: "The CSV file is larger than 5 MB.",
+  importPayloadTooLarge:
+    "The prepared import payload is too large. Split it into smaller files.",
+  importTooManyRows:
+    "The file contains more than 5,000 rows. Split it into smaller files.",
+  csvEncodingError:
+    "The file encoding could not be read. Re-save it as CSV UTF-8 or UTF-16.",
+  csvEmptyError: "The CSV file is empty.",
+  csvEmptyHeaderError: "The file contains an empty column name.",
+  csvDuplicateHeaderError: "The file contains duplicate column names.",
+  csvMissingColumnsError:
+    "Required import columns are missing. Use the Clinic template without renaming columns.",
+  csvExtraFieldsError: "A CSV row contains more fields than the header.",
+  csvUnfinishedQuoteError: "A quoted CSV field is not closed.",
   importDemoUnavailable:
     "CSV import is available for the connected Clinic account only.",
   importRows: "rows",

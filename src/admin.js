@@ -33,10 +33,14 @@ import { notFound } from "./pages.js";
 import {
   downloadCsv,
   parseCsv,
+  readCsvFile,
   productExportRows,
   productTemplateRows,
   importRows,
   serializeCsv,
+  MAX_IMPORT_FILE_BYTES,
+  MAX_IMPORT_ROWS,
+  MAX_IMPORT_PAYLOAD_BYTES,
 } from "./csv.js";
 import a from "./styles/admin.module.css";
 
@@ -71,12 +75,26 @@ function sidebar(route, authState) {
     ...collections,
     ...(authState.isAdmin ? ["images", "users"] : []),
   ];
-  return `<aside class="${a.sidebar}"><div class="${a.sidebarBrand}"><span class="${a.sidebarMark}"><img src="/assets/clinic-logo-transparent.png" alt="" width="64" height="64" /></span><div><strong>Clinic</strong><small>${t("admin")}</small></div></div><nav aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "users" ? "user" : c === "images" ? "image" : "grid")}${esc(c === "images" ? t("imageLibrary") : t(labelFor(c)))}</a>`).join("")}</nav><div class="${a.sidebarFoot}"><small>${authState.mode === "demo" ? t("localOnly") : t("cloudManaged")}</small>${button(t("signOut"), 'id="app-sign-out"', "ghost")}</div></aside>`;
+  const navigation = (className) =>
+    `<nav class="${className}" aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "users" ? "user" : c === "images" ? "image" : "grid")}${esc(c === "images" ? t("imageLibrary") : t(labelFor(c)))}</a>`).join("")}</nav>`;
+  return `<aside class="${a.sidebar}"><div class="${a.sidebarBrand}"><span class="${a.sidebarMark}"><img src="/assets/clinic-logo-transparent.png" alt="" width="64" height="64" /></span><div><strong>Clinic</strong><small>${t("admin")}</small></div><details class="${a.mobileNav}"><summary aria-label="${t("adminMenu")}">${icon("grid")}<span>${t("adminMenu")}</span></summary>${navigation(a.mobileNavMenu)}</details></div>${navigation(a.desktopNav)}<div class="${a.sidebarFoot}"><small>${authState.mode === "demo" ? t("localOnly") : t("cloudManaged")}</small>${button(t("signOut"), 'id="app-sign-out"', "ghost")}</div></aside>`;
 }
 function overview(data, authState) {
   const reset =
     authState.mode === "demo" ? button(t("reset"), 'id="reset-demo"') : "";
-  return `<div class="${a.head}"><div><h1 tabindex="-1">${t("overview")}</h1><p>${t("manageText")}</p></div></div>${authState.mode === "demo" ? `<p class="${s.banner}">${t("demoWarning")}</p>` : ""}<div class="${a.metrics}">${collections.map((c) => `<section class="${a.metric}"><strong>${number(data[c].length)}</strong><span>${t(labelFor(c))}</span><a href="#/admin/${c}">${t("manage")}${arrow()}</a></section>`).join("")}</div>${reset}<p id="admin-error" role="alert" class="${s.error}"></p>`;
+  const brandRows = data.companies
+    .slice(0, 4)
+    .map((brand) => {
+      const productCount = data.products.filter(
+        (product) => product.company_id === brand.id,
+      ).length;
+      return `<li><span class="${a.brandDot}" aria-hidden="true">${esc((nameOf(brand) || "?").slice(0, 1))}</span><span class="${a.overviewBrandName}"><bdi>${esc(nameOf(brand))}</bdi><small dir="ltr">${esc(brand.name_en || "")}</small></span><span class="${a.overviewBrandCount}">${number(productCount)} ${t("products")}</span><a class="${s.compactButton}" href="#/admin/companies/edit/${encodeURIComponent(brand.id)}">${t("manage")}${arrow()}</a></li>`;
+    })
+    .join("");
+  const brandSection = data.companies.length
+    ? `<section class="${a.overviewBrands}" aria-label="${t("brands")}"><div class="${a.overviewBrandsHead}"><h2>${t("brands")}</h2><a class="${s.compactButton}" href="#/admin/companies">${t("allBrands")}${arrow()}</a></div><ul>${brandRows}</ul></section>`
+    : "";
+  return `<div class="${a.head}"><div><h1 tabindex="-1">${t("overview")}</h1><p>${t("manageText")}</p></div></div>${authState.mode === "demo" ? `<p class="${s.banner}">${t("demoWarning")}</p>` : ""}<div class="${a.metrics}">${collections.map((c) => `<section class="${a.metric}"><strong>${number(data[c].length)}</strong><span>${t(labelFor(c))}</span><a href="#/admin/${c}">${t("manage")}${arrow()}</a></section>`).join("")}</div>${brandSection}${reset}<p id="admin-error" role="alert" class="${s.error}"></p>`;
 }
 function brandCsvActions(brand) {
   return `<div class="${a.rowTools}"><button type="button" class="${s.compactButton}" data-export-brand="${esc(brand.id)}">${t("exportProducts")}</button><button type="button" class="${s.compactButton}" data-template-brand="${esc(brand.id)}">${t("downloadTemplate")}</button><button type="button" class="${s.compactButton} ${s.primary}" data-import-brand="${esc(brand.id)}">${t("importProducts")}</button></div>`;
@@ -90,7 +108,7 @@ function list(data, route, c, users = []) {
     8,
   );
   const isBrands = c === "companies";
-  return `<div class="${a.head}"><div><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t(labelFor(c))}</h1><p>${number(page.total)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/${c}/new">${icon("plus")}${t("add")}</a></div><div class="${a.listToolbar}">${searchBox(q, c === "products" ? "searchProducts" : "searchBrands")}<span class="${a.listHint}">${isBrands ? t("brandToolsHint") : t("manageText")}</span></div><p id="admin-error" class="${s.error}" role="alert"></p>${page.total ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t(labelFor(c))}"><table class="${a.table}"><thead><tr><th scope="col">${t(locale === "ar" ? "nameAr" : "nameEn")}</th><th scope="col">${t(c === "products" ? "finalPrice" : c === "companies" ? "products" : "brand")}</th><th scope="col">${t("actions")}</th></tr></thead><tbody>${page.items.map((item) => `<tr><td><div class="${a.imageCell}">${c !== "companies" ? image(item.img_url || item.img_link, nameOf(item)) : `<span class="${a.brandDot}">${esc((nameOf(item) || "?").slice(0, 1))}</span>`}<span>${esc(nameOf(item))}<small dir="ltr">${esc(item.name_en)}</small></span></div></td><td>${c === "products" ? money(item.final_price) : c === "companies" ? number(data.products.filter((p) => p.company_id === item.id).length) : esc(nameOf(data.companies.find((b) => b.id === item.company_id)))}</td><td><div class="${a.tableActions}"><a class="${s.iconButton}" href="#/admin/${c}/edit/${encodeURIComponent(item.id)}" aria-label="${t("edit")}: ${esc(nameOf(item))}">${icon("edit")}</a><button type="button" class="${s.iconButton}" data-delete="${esc(item.id)}" aria-label="${t("delete")}: ${esc(nameOf(item))}">${icon("trash")}</button>${isBrands ? brandCsvActions(item) : ""}</div></td></tr>`).join("")}</tbody></table></div>${pagination(page.page, page.pages)}` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
+  return `<div class="${a.head}"><div><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t(labelFor(c))}</h1><p>${number(page.total)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/${c}/new">${icon("plus")}${t("add")}</a></div><div class="${a.listToolbar}">${searchBox(q, c === "products" ? "searchProducts" : "searchBrands")}<span class="${a.listHint}">${isBrands ? t("brandToolsHint") : t("manageText")}</span></div><p id="admin-error" class="${s.error}" role="alert"></p>${page.total ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t(labelFor(c))}"><table class="${a.table}"><thead><tr><th scope="col">${t(locale === "ar" ? "nameAr" : "nameEn")}</th><th scope="col">${t(c === "products" ? "finalPrice" : c === "companies" ? "products" : "brand")}</th><th scope="col">${t("actions")}</th></tr></thead><tbody>${page.items.map((item) => `<tr><td><div class="${a.imageCell}">${c !== "companies" ? image(item.img_url || item.img_link, nameOf(item)) : `<span class="${a.brandDot}">${esc((nameOf(item) || "?").slice(0, 1))}</span>`}<span><bdi>${esc(nameOf(item))}</bdi><small dir="ltr">${esc(item.name_en)}</small></span></div></td><td>${c === "products" ? money(item.final_price) : c === "companies" ? number(data.products.filter((p) => p.company_id === item.id).length) : `<bdi>${esc(nameOf(data.companies.find((b) => b.id === item.company_id)))}</bdi>`}</td><td><div class="${a.tableActions}"><a class="${s.iconButton}" href="#/admin/${c}/edit/${encodeURIComponent(item.id)}" aria-label="${t("edit")}: ${esc(nameOf(item))}">${icon("edit")}</a><button type="button" class="${s.iconButton}" data-delete="${esc(item.id)}" aria-label="${t("delete")}: ${esc(nameOf(item))}">${icon("trash")}</button>${isBrands ? brandCsvActions(item) : ""}</div></td></tr>`).join("")}</tbody></table></div>${pagination(page.page, page.pages)}` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
 }
 function userList(users, q) {
   const usernameOf = (user) => user.username || user.user || user.email || "";
@@ -182,6 +200,19 @@ function bindImportResult(root, result, brand, signal) {
     { signal },
   );
 }
+function importErrorMessage(error) {
+  const messages = {
+    csv_encoding: "csvEncodingError",
+    csv_empty: "csvEmptyError",
+    csv_empty_header: "csvEmptyHeaderError",
+    csv_duplicate_headers: "csvDuplicateHeaderError",
+    csv_missing_columns: "csvMissingColumnsError",
+    csv_extra_fields: "csvExtraFieldsError",
+    csv_unfinished_quote: "csvUnfinishedQuoteError",
+  };
+  const key = messages[error?.code];
+  return key ? t(key) : error?.message || t("importFailed");
+}
 export function adminPage(data, route, authState) {
   const c = route.parts[1];
   if (c && ![...collections, "users", "images"].includes(c)) return notFound();
@@ -236,6 +267,16 @@ function bindBrandCsv(root, data, signal, render) {
   const fileInput = root.querySelector("#brand-import-file");
   const previewRoot = root.querySelector("#brand-import-preview");
   let pending = null;
+  let previewRequest = 0;
+  let applying = false;
+  const importButtons = [...root.querySelectorAll("[data-import-brand]")];
+
+  const setImportControlsDisabled = (disabled) => {
+    importButtons.forEach((button) => {
+      button.disabled = disabled;
+    });
+    if (fileInput) fileInput.disabled = disabled;
+  };
   root.querySelectorAll("[data-export-brand]").forEach((button) =>
     button.addEventListener(
       "click",
@@ -276,7 +317,7 @@ function bindBrandCsv(root, data, signal, render) {
     button.addEventListener(
       "click",
       () => {
-        if (!fileInput) return;
+        if (!fileInput || applying) return;
         fileInput.dataset.brandId = button.dataset.importBrand;
         fileInput.value = "";
         fileInput.click();
@@ -287,17 +328,22 @@ function bindBrandCsv(root, data, signal, render) {
   fileInput?.addEventListener(
     "change",
     async () => {
+      if (applying) return;
+      const requestId = ++previewRequest;
       const file = fileInput.files?.[0];
       const brand = data.companies.find(
         (item) => item.id === fileInput.dataset.brandId,
       );
       if (!file || !brand || !previewRoot) return;
-      if (file.size > 5 * 1024 * 1024) {
-        previewRoot.innerHTML = `<p class="${s.error}" role="alert">${t("importFailed")}</p>`;
+      pending = null;
+      previewRoot.innerHTML = `<p class="${a.status}">${t("loading")}</p>`;
+      if (file.size > MAX_IMPORT_FILE_BYTES) {
+        previewRoot.innerHTML = `<p class="${s.error}" role="alert">${t("importFileTooLarge")}</p>`;
         return;
       }
       try {
-        const rows = importRows(parseCsv(await file.text()), brand);
+        const rows = importRows(parseCsv(await readCsvFile(file)), brand);
+        if (requestId !== previewRequest) return;
         if (rows.some((row) => row.brand_id && row.brand_id !== brand.id)) {
           previewRoot.innerHTML = `<p class="${s.error}" role="alert">${t("importBrandMismatch")}</p>`;
           return;
@@ -306,48 +352,64 @@ function bindBrandCsv(root, data, signal, render) {
           previewRoot.innerHTML = `<p class="${s.error}" role="alert">${t("importEmpty")}</p>`;
           return;
         }
+        if (rows.length > MAX_IMPORT_ROWS) {
+          previewRoot.innerHTML = `<p class="${s.error}" role="alert">${t("importTooManyRows")}</p>`;
+          return;
+        }
+        const payloadBytes = new TextEncoder().encode(
+          JSON.stringify(rows),
+        ).byteLength;
+        if (payloadBytes > MAX_IMPORT_PAYLOAD_BYTES) {
+          previewRoot.innerHTML = `<p class="${s.error}" role="alert">${t("importPayloadTooLarge")}</p>`;
+          return;
+        }
         previewRoot.innerHTML = `<p class="${a.status}">${t("loading")}</p>`;
         const result = await importBrandProducts(brand.id, rows, true);
+        if (requestId !== previewRequest) return;
         pending = result.ok ? { brand, rows } : null;
-        previewRoot.innerHTML = `${importPreview(result)}${result.ok ? `<div class="${a.importActions}"><button type="button" class="${s.button} ${s.primary}" id="apply-brand-import" onclick="this.dispatchEvent(new Event('clinic-apply-brand-import'))">${t("applyImport")}</button></div>` : ""}`;
+        previewRoot.innerHTML = `${importPreview(result)}${result.ok ? `<div class="${a.importActions}"><button type="button" class="${s.button} ${s.primary}" id="apply-brand-import">${t("applyImport")}</button></div>` : ""}`;
         bindImportResult(previewRoot, result, brand, signal);
         previewRoot.querySelector("#apply-brand-import")?.addEventListener(
           "click",
           async (event) => {
-            if (!pending) return;
-            event.currentTarget.disabled = true;
+            if (!pending || applying) return;
+            const batch = pending;
+            const applyButton = event.currentTarget;
+            applying = true;
+            setImportControlsDisabled(true);
+            applyButton.disabled = true;
+            let applied;
             try {
-              const applied = await importBrandProducts(
-                pending.brand.id,
-                pending.rows,
+              applied = await importBrandProducts(
+                batch.brand.id,
+                batch.rows,
                 false,
               );
-              pending = null;
-              if (!applied.ok) {
-                previewRoot.innerHTML = importPreview(applied);
-                return;
-              }
-              notify(t("importApplied"));
-              previewRoot.innerHTML = importPreview(applied);
-              bindImportResult(
-                previewRoot,
-                applied,
-                pending?.brand || brand,
-                signal,
-              );
-              await render();
             } catch (error) {
-              event.currentTarget.disabled = false;
+              applyButton.disabled = false;
+              previewRoot.querySelector("[data-import-apply-error]")?.remove();
               previewRoot.insertAdjacentHTML(
                 "afterbegin",
-                `<p class="${s.error}" role="alert">${esc(error?.message || t("importFailed"))}</p>`,
+                `<p data-import-apply-error class="${s.error}" role="alert">${esc(error?.message || t("importFailed"))}</p>`,
               );
+              return;
+            } finally {
+              applying = false;
+              setImportControlsDisabled(false);
             }
+
+            pending = null;
+            previewRoot.innerHTML = importPreview(applied);
+            bindImportResult(previewRoot, applied, batch.brand, signal);
+            if (!applied.ok) return;
+            notify(t("importApplied"));
+            await render();
           },
           { signal },
         );
       } catch (error) {
-        previewRoot.innerHTML = `<p class="${s.error}" role="alert">${esc(error?.message || t("importFailed"))}</p>`;
+        if (requestId !== previewRequest) return;
+        previewRoot.innerHTML = `<p class="${s.error}" role="alert">${esc(importErrorMessage(error))}</p>`;
       }
     },
     { signal },

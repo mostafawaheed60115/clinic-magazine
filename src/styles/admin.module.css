@@ -1345,3 +1345,308 @@
     transform: none !important;
   }
 }
+
+/* Keep admin navigation complete on phones without a clipped scroll rail. */
+.desktopNav {
+  display: grid;
+}
+.mobileNav {
+  display: none;
+}
+.overviewBrands {
+  overflow: hidden;
+  margin-block: 28px;
+  border: 1px solid rgb(212 222 214 / 0.8);
+  border-radius: 16px;
+  background: linear-gradient(150deg, var(--paper), var(--surface-tint));
+  box-shadow:
+    var(--elevation-2),
+    inset 0 1px 0 var(--edge-highlight);
+}
+.overviewBrandsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+}
+.overviewBrandsHead h2 {
+  font-size: 20px;
+}
+.overviewBrands ul {
+  display: grid;
+  margin: 0;
+  padding: 0 22px;
+  list-style: none;
+}
+.overviewBrands li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding-block: 13px;
+  border-bottom: 1px solid var(--line);
+}
+.overviewBrands li:last-child {
+  border-bottom: 0;
+}
+.overviewBrandName {
+  display: grid;
+  min-width: 0;
+}
+.overviewBrandName bdi {
+  overflow-wrap: anywhere;
+  font-weight: 750;
+}
+.overviewBrandName small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.overviewBrandCount {
+  color: var(--muted);
+  font-size: 12px;
+}
+.overviewBrands .compactButton {
+  gap: 8px;
+  min-height: 40px;
+  font-size: 12px;
+}
+.sidebar a,
+.rowTools .compactButton,
+.overviewBrands .compactButton {
+  transition:
+    transform 220ms var(--ease-spring),
+    box-shadow 220ms var(--ease-spring),
+    background-color 180ms var(--ease-spring),
+    border-color 180ms var(--ease-spring);
+}
+@media (hover: hover) and (pointer: fine) {
+  .sidebar a:hover,
+  .rowTools .compactButton:hover,
+  .overviewBrands .compactButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 9px 20px rgb(30 51 40 / 0.12);
+  }
+}
+.rowTools .compactButton.primary {
+  background: var(--brand-gradient);
+  color: var(--on-primary);
+}
+.rowTools .compactButton.primary:hover {
+  box-shadow: 0 12px 24px rgb(47 116 72 / 0.24);
+}
+
+@media (max-width: 760px) {
+  .layout {
+    display: block;
+    padding: 16px 0 44px;
+  }
+  .sidebar {
+    position: relative;
+    top: auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin-bottom: 22px;
+    padding: 12px;
+    border-radius: 14px;
+  }
+  .sidebarBrand {
+    justify-content: space-between;
+    padding: 4px 5px 12px;
+  }
+  .desktopNav {
+    display: none !important;
+  }
+  .mobileNav {
+    position: relative;
+    display: block;
+    margin-inline-start: auto;
+  }
+  .mobileNav > summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px 11px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 700;
+    list-style: none;
+    cursor: pointer;
+  }
+  .mobileNav > summary::-webkit-details-marker {
+    display: none;
+  }
+  .mobileNav > summary .icon {
+    width: 17px;
+    height: 17px;
+  }
+  .mobileNav[open] > summary {
+    border-color: var(--primary);
+    background: var(--surface-tint);
+  }
+  .mobileNavMenu {
+    position: absolute;
+    z-index: var(--z-dropdown);
+    inset-inline-end: 0;
+    inset-block-start: calc(100% + 10px);
+    display: grid;
+    gap: 4px;
+    width: min(290px, calc(100vw - 48px));
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--paper);
+    box-shadow: var(--elevation-3);
+    animation: adminMenuIn 180ms var(--ease-spring) both;
+  }
+  .sidebar .mobileNavMenu a {
+    min-height: 44px;
+    padding: 10px 12px;
+    white-space: normal;
+  }
+  .sidebarFoot {
+    flex-wrap: wrap;
+  }
+  .sidebarFoot small {
+    flex: 1 1 100%;
+  }
+  .layout > section {
+    min-width: 0;
+  }
+  .tableWrap {
+    overflow: visible;
+    margin-inline: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+  }
+  .table tbody {
+    display: grid;
+    gap: 12px;
+  }
+  .table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand count"
+      "actions actions";
+    align-items: center;
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--paper);
+    box-shadow:
+      var(--elevation-1),
+      inset 0 1px 0 var(--edge-highlight);
+  }
+  .table td,
+  .table td:first-child,
+  .table td:last-child {
+    width: auto;
+    min-width: 0;
+    padding: 14px;
+    border: 0;
+  }
+  .table td:first-child {
+    grid-area: brand;
+  }
+  .table td:nth-child(2) {
+    grid-area: count;
+    text-align: end;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .table td:last-child {
+    grid-area: actions;
+    padding-top: 0;
+    border-top: 1px solid var(--line);
+  }
+  .tableActions {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .rowTools {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    width: 100%;
+    min-width: 0;
+    margin-top: 0;
+    grid-column: 1 / -1;
+  }
+  .rowTools .compactButton {
+    justify-content: flex-start;
+    min-height: 42px;
+    padding-inline: 12px;
+    font-size: 12px;
+  }
+  .overviewBrands {
+    margin-block: 22px;
+  }
+  .overviewBrands ul {
+    padding-inline: 16px;
+  }
+  .overviewBrands li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .overviewBrandCount {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .overviewBrands li > .compactButton {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}
+
+@keyframes adminMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 420px) {
+  .overviewBrandsHead {
+    padding-inline: 16px;
+  }
+  .tableActions {
+    grid-template-columns: auto auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobileNavMenu {
+    animation: none;
+  }
+}

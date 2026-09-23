@@ -82,6 +82,39 @@ test("admin image library is keyboard-accessible and mobile-safe", async ({
   ).toBe(true);
 });
 
+test("admin brand tools and navigation remain usable on mobile", async ({
+  page,
+}) => {
+  await english(page);
+  await login(page);
+  await expect(page.locator('section[aria-label="Brands"]')).toBeVisible();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: "work/admin-overview.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/#/admin/companies");
+
+  const mobileMenu = page.locator("aside details");
+  await expect(mobileMenu.locator("summary")).toBeVisible();
+  await expect(page.locator("aside > nav")).toBeHidden();
+  await mobileMenu.locator("summary").click();
+  await expect(mobileMenu.locator("nav")).toBeVisible();
+  await mobileMenu.getByRole("link", { name: "Brands" }).click();
+  await expect(page.locator("h1")).toHaveText("Brands");
+
+  const importButton = page.locator("[data-import-brand]").first();
+  await expect(importButton).toBeVisible();
+  const bounds = await importButton.boundingBox();
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.screenshot({ path: "work/admin-mobile.png", fullPage: true });
+});
+
 test("Arabic default, carousel, language and keyboard", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

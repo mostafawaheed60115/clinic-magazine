@@ -3,6 +3,7 @@ import {
   importRows,
   parseCsv,
   productExportRows,
+  readCsvFile,
   serializeCsv,
 } from "../src/csv.js";
 
@@ -33,6 +34,113 @@ test("CSV exports round-trip safely and preserve blank override fields", () => {
     discount: "",
     product_url: "",
     image_url: "https://example.com/image.webp",
+  });
+});
+
+test("CSV imports preserve exported identity while applying edits", () => {
+  const brand = { id: "brand-1", name_en: "Test brand" };
+  const exported = productExportRows(brand, [
+    {
+      id: "product-1",
+      revision: 7,
+      name_en: "Original name",
+      name_ar: "الاسم الأصلي",
+      size_value: 30,
+      size_unit: "ml",
+      qty: 2,
+      discount: 0,
+      final_price: 120,
+      product_url: null,
+      img_url: "https://example.com/old.webp",
+    },
+  ]);
+  exported[0].name_en = "Edited name";
+  exported[0].image_url = "https://example.com/new.webp";
+  exported[0].name_ar = "";
+
+  const [imported] = importRows(parseCsv(serializeCsv(exported)), brand);
+  expect(imported).toMatchObject({
+    brand_id: "brand-1",
+    product_id: "product-1",
+    revision: "7",
+    name_en: "Edited name",
+    name_ar: "",
+    image_url: "https://example.com/new.webp",
+  });
+});
+
+test("CSV parser rejects duplicate headers and rows with extra cells", () => {
+  expect(() =>
+    parseCsv("name_en,name_ar,final_price,name_en\nA,منتج,12,B"),
+  ).toThrow(expect.objectContaining({ code: "csv_duplicate_headers" }));
+  expect(() =>
+    parseCsv("name_en,name_ar,final_price\nA,منتج,12,extra"),
+  ).toThrow(expect.objectContaining({ code: "csv_extra_fields", row: 2 }));
+});
+
+test("CSV parser detects locale delimiters and preserves Arabic text", () => {
+  expect(
+    parseCsv('name_en;name_ar;final_price\r\nLotion;"كريم; مرطب";١٢٣,٥'),
+  ).toEqual([
+    { name_en: "Lotion", name_ar: "كريم; مرطب", final_price: "١٢٣,٥" },
+  ]);
+  expect(parseCsv("name_en،name_ar،final_price\nLotion،مرطب،123٫5")).toEqual([
+    { name_en: "Lotion", name_ar: "مرطب", final_price: "123٫5" },
+  ]);
+});
+
+test("CSV reader supports UTF-16 Excel exports and Windows-1256 Arabic", async () => {
+  const utf16Text = "name_en,name_ar,final_price\r\nCream,مرطب,12.5";
+  const utf16Bytes = Uint8Array.from([
+    0xff,
+    0xfe,
+    ...[...utf16Text].flatMap((char) => {
+      const code = char.charCodeAt(0);
+      return [code & 0xff, code >> 8];
+    }),
+  ]);
+  const legacyPrefix = new TextEncoder().encode(
+    "name_en,name_ar,final_price\nCream,",
+  );
+  const legacySuffix = new TextEncoder().encode(",12.5");
+  const legacyBytes = Uint8Array.from([
+    ...legacyPrefix,
+    0xca,
+    0xed,
+    0xd3,
+    0xca,
+    ...legacySuffix,
+  ]);
+  const asFile = (bytes) => ({ arrayBuffer: async () => bytes.slice().buffer });
+
+  expect(parseCsv(await readCsvFile(asFile(utf16Bytes)))[0].name_ar).toBe(
+    "مرطب",
+  );
+  expect(parseCsv(await readCsvFile(asFile(legacyBytes)))[0].name_ar).toBe(
+    "تيست",
+  );
+});
+
+test("Arabic and locale-formatted numeric fields normalize without changing blanks", () => {
+  const brand = { id: "brand-1", name_en: "Test brand" };
+  const [arabic] = importRows(
+    [
+      {
+        final_price: "١٬٢٣٤٫٥",
+        size_value: "1.234,5",
+        qty: "2,500",
+        discount: "",
+        size_unit: "ملليلتر",
+      },
+    ],
+    brand,
+  );
+  expect(arabic).toMatchObject({
+    final_price: "1234.5",
+    size_value: "1234.5",
+    qty: "2500",
+    discount: "",
+    size_unit: "ml",
   });
 });
 

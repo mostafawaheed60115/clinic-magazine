@@ -2015,3 +2015,47 @@ html[lang="ar"] .loginPanel h1 {
     animation: none;
   }
 }
+
+/* Admin uses its own branded rail, so keep the global bar utility-only. */
+.adminHeader {
+  min-height: 72px;
+  background: rgb(255 253 249 / 0.92);
+}
+.adminHeader .headerInner {
+  justify-content: flex-start;
+  padding-block: 8px;
+}
+.adminHeader .logo {
+  display: flex;
+}
+.adminHeader .logo img {
+  width: 54px;
+  height: 54px;
+}
+.adminHeader .adminCrumb {
+  display: block;
+}
+.adminHeader .headerTools {
+  margin-inline-start: 0;
+  margin-inline-end: auto;
+}
+.adminHeader .locale {
+  min-height: 42px;
+  padding-inline: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+@media (max-width: 680px) {
+  .adminHeader {
+    min-height: 56px;
+  }
+  .adminHeader .headerInner {
+    display: flex;
+    padding-block: 6px;
+  }
+  .adminHeader .logo img {
+    width: 42px;
+    height: 42px;
+  }
+}
