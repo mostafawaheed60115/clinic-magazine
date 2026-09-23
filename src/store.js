@@ -6,7 +6,9 @@ import {
   saveCatalogItem,
   deleteCatalogItem,
   importBrandProducts as importBrandProductsRemote,
+  saveConsultationSettings as saveConsultationSettingsRemote,
 } from "./cloud.js";
+import { normalizeWhatsappPhone } from "./consultation.js";
 
 export const collections = demoStore.collections;
 export const channel = demoStore.channel;
@@ -89,6 +91,23 @@ export async function saveItem(collection, item, expectedRevision) {
   const saved = await saveCatalogItem(collection, item, expectedRevision);
   invalidateCatalogCache();
   channel?.postMessage("updated");
+  return saved;
+}
+
+export async function saveConsultationSettings(phone, expectedRevision) {
+  await requireSession();
+  const normalized = normalizeWhatsappPhone(phone);
+  if (!normalized) {
+    const error = new Error("Invalid WhatsApp phone number");
+    error.code = "invalid_phone";
+    throw error;
+  }
+  if (!isDemoMode() && !hasCloudConfig()) throw unconfigured();
+  const saved = isDemoMode()
+    ? await demoStore.saveConsultationSettings(normalized, expectedRevision)
+    : await saveConsultationSettingsRemote(normalized, expectedRevision);
+  invalidateCatalogCache();
+  if (!isDemoMode()) channel?.postMessage("updated");
   return saved;
 }
 

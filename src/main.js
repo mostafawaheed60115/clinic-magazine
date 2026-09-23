@@ -23,6 +23,7 @@ import {
 import { adminPage, bindAdmin, isDirty, mayLeave, markClean } from "./admin.js";
 import { icon, arrow, hydrateImages, notify, s } from "./ui.js";
 import m from "./styles/magazine.module.css";
+import { consultationUrl } from "./consultation.js";
 
 initLocale();
 const app = document.querySelector("#app");
@@ -61,7 +62,16 @@ function chrome(route, content, options = {}) {
   const current = route.parts[0];
   const direction = locale === "ar" ? "rtl" : "ltr";
   const admin = current === "admin";
-  return `<a class="${m.skip}" href="#main">${t("skip")}</a><header class="${m.header} ${admin ? m.adminHeader : ""}"><div class="${m.headerInner}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="130" height="130" /></a>${admin ? `<span class="${m.adminCrumb}">${t("admin")}</span>` : `<nav class="${m.nav}" dir="${direction}" aria-label="${t("browse")}"><a href="#/offers" ${current === "offers" ? 'aria-current="page"' : ""}>${t("offers")}</a><a href="#/brands" ${["brands", "brand", "product"].includes(current) ? 'aria-current="page"' : ""}>${t("brands")}</a></nav>`}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a><button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></div></header><div class="${m.shell} ${options.keepSearch ? m.searchRender : ""}"><main id="main">${content}</main></div><footer class="${m.footer}"><div class="${m.footerInner}"><div class="${m.footerTop}"><div><p>${t("footerText")}</p>${novaAttribution()}</div>${admin ? "" : `<a class="${m.footerExploreLink}" href="#/brands">${t("exploreBrands")}${arrow()}</a>`}</div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span>${admin ? "" : `<a href="#/admin">${t("admin")}</a>`}</div></div></footer><div class="${m.demoNotice}">${authState.mode === "demo" ? t("demo") : ""}</div>`;
+  const navigation = admin
+    ? `<span class="${m.adminCrumb}">${t("admin")}</span>`
+    : `<nav class="${m.nav}" dir="${direction}" aria-label="${t("browse")}"><a href="#/offers" ${current === "offers" ? 'aria-current="page"' : ""}>${t("offers")}</a><a href="#/brands" ${["brands", "brand", "product"].includes(current) ? 'aria-current="page"' : ""}>${t("brands")}</a><a href="#/exclusive" ${current === "exclusive" ? 'aria-current="page"' : ""}>${t("exclusiveBrands")}</a></nav>`;
+  const whatsappHref = !admin
+    ? consultationUrl(options.settings?.whatsapp_phone)
+    : "";
+  const consultation = whatsappHref
+    ? `<a class="${m.consultationButton}" href="${whatsappHref}" target="_blank" rel="noopener noreferrer" aria-label="${t("medicalConsultation")}">${icon("whatsapp")}<span>${t("medicalConsultation")}</span></a>`
+    : "";
+  return `<a class="${m.skip}" href="#main">${t("skip")}</a><header class="${m.header} ${admin ? m.adminHeader : ""}"><div class="${m.headerInner}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="130" height="130" /></a>${navigation}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a><button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></div></header><div class="${m.shell} ${options.keepSearch ? m.searchRender : ""}"><main id="main">${content}</main></div><footer class="${m.footer}"><div class="${m.footerInner}"><div class="${m.footerTop}"><div><p>${t("footerText")}</p>${novaAttribution()}</div>${admin ? "" : `<a class="${m.footerExploreLink}" href="#/brands">${t("exploreBrands")}${arrow()}</a>`}</div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span>${admin ? "" : `<a href="#/admin">${t("admin")}</a>`}</div></div></footer>${consultation}<div class="${m.demoNotice}">${authState.mode === "demo" ? t("demo") : ""}</div>`;
 }
 
 function loading(content = t("sessionLoading")) {
@@ -142,12 +152,16 @@ export async function render(options = {}) {
   if (request !== version) return;
   let content;
   if (page === "offers") content = offersPage(data);
-  else if (page === "brands") content = brandsPage(data, route);
+  else if (page === "brands" || page === "exclusive")
+    content = brandsPage(data, route);
   else if (page === "brand") content = brandPage(data, route);
   else if (page === "product") content = productPage(data, route);
   else if (page === "admin") content = adminPage(data, route, authState);
   else content = notFound();
-  app.innerHTML = chrome(route, content, options);
+  app.innerHTML = chrome(route, content, {
+    ...options,
+    settings: data.settings,
+  });
   activeHash = location.hash || "#/offers";
   hydrateImages(app);
   bindChrome(signal);

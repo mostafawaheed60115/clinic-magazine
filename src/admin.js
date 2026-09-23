@@ -21,7 +21,9 @@ import {
   deleteItem,
   resetStore,
   importBrandProducts,
+  saveConsultationSettings,
 } from "./store.js";
+import { consultationUrl, normalizeWhatsappPhone } from "./consultation.js";
 import { loadUsers, createUser, updateUser, signOut } from "./auth.js";
 import {
   prepareImage,
@@ -73,10 +75,10 @@ const selectField = (key, label, options, value = "", required = true) =>
 function sidebar(route, authState) {
   const nav = [
     ...collections,
-    ...(authState.isAdmin ? ["images", "users"] : []),
+    ...(authState.isAdmin ? ["images", "settings", "users"] : []),
   ];
   const navigation = (className) =>
-    `<nav class="${className}" aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "users" ? "user" : c === "images" ? "image" : "grid")}${esc(c === "images" ? t("imageLibrary") : t(labelFor(c)))}</a>`).join("")}</nav>`;
+    `<nav class="${className}" aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "users" ? "user" : c === "images" ? "image" : c === "settings" ? "whatsapp" : "grid")}${esc(c === "images" ? t("imageLibrary") : c === "settings" ? t("consultationSettings") : t(labelFor(c)))}</a>`).join("")}</nav>`;
   return `<aside class="${a.sidebar}"><div class="${a.sidebarBrand}"><span class="${a.sidebarMark}"><img src="/assets/clinic-logo-transparent.png" alt="" width="64" height="64" /></span><div><strong>Clinic</strong><small>${t("admin")}</small></div><details class="${a.mobileNav}"><summary aria-label="${t("adminMenu")}">${icon("grid")}<span>${t("adminMenu")}</span></summary>${navigation(a.mobileNavMenu)}</details></div>${navigation(a.desktopNav)}<div class="${a.sidebarFoot}"><small>${authState.mode === "demo" ? t("localOnly") : t("cloudManaged")}</small>${button(t("signOut"), 'id="app-sign-out"', "ghost")}</div></aside>`;
 }
 function overview(data, authState) {
@@ -108,7 +110,7 @@ function list(data, route, c, users = []) {
     8,
   );
   const isBrands = c === "companies";
-  return `<div class="${a.head}"><div><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t(labelFor(c))}</h1><p>${number(page.total)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/${c}/new">${icon("plus")}${t("add")}</a></div><div class="${a.listToolbar}">${searchBox(q, c === "products" ? "searchProducts" : "searchBrands")}<span class="${a.listHint}">${isBrands ? t("brandToolsHint") : t("manageText")}</span></div><p id="admin-error" class="${s.error}" role="alert"></p>${page.total ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t(labelFor(c))}"><table class="${a.table}"><thead><tr><th scope="col">${t(locale === "ar" ? "nameAr" : "nameEn")}</th><th scope="col">${t(c === "products" ? "finalPrice" : c === "companies" ? "products" : "brand")}</th><th scope="col">${t("actions")}</th></tr></thead><tbody>${page.items.map((item) => `<tr><td><div class="${a.imageCell}">${c !== "companies" ? image(item.img_url || item.img_link, nameOf(item)) : `<span class="${a.brandDot}">${esc((nameOf(item) || "?").slice(0, 1))}</span>`}<span><bdi>${esc(nameOf(item))}</bdi><small dir="ltr">${esc(item.name_en)}</small></span></div></td><td>${c === "products" ? money(item.final_price) : c === "companies" ? number(data.products.filter((p) => p.company_id === item.id).length) : `<bdi>${esc(nameOf(data.companies.find((b) => b.id === item.company_id)))}</bdi>`}</td><td><div class="${a.tableActions}"><a class="${s.iconButton}" href="#/admin/${c}/edit/${encodeURIComponent(item.id)}" aria-label="${t("edit")}: ${esc(nameOf(item))}">${icon("edit")}</a><button type="button" class="${s.iconButton}" data-delete="${esc(item.id)}" aria-label="${t("delete")}: ${esc(nameOf(item))}">${icon("trash")}</button>${isBrands ? brandCsvActions(item) : ""}</div></td></tr>`).join("")}</tbody></table></div>${pagination(page.page, page.pages)}` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
+  return `<div class="${a.head}"><div><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t(labelFor(c))}</h1><p>${number(page.total)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/${c}/new">${icon("plus")}${t("add")}</a></div><div class="${a.listToolbar}">${searchBox(q, c === "products" ? "searchProducts" : "searchBrands")}<span class="${a.listHint}">${isBrands ? t("brandToolsHint") : t("manageText")}</span></div><p id="admin-error" class="${s.error}" role="alert"></p>${page.total ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t(labelFor(c))}"><table class="${a.table}"><thead><tr><th scope="col">${t(locale === "ar" ? "nameAr" : "nameEn")}</th><th scope="col">${t(c === "products" ? "finalPrice" : c === "companies" ? "products" : "brand")}</th><th scope="col">${t("actions")}</th></tr></thead><tbody>${page.items.map((item) => `<tr><td><div class="${a.imageCell}">${c !== "companies" ? image(item.img_url || item.img_link, nameOf(item)) : `<span class="${a.brandDot}">${esc((nameOf(item) || "?").slice(0, 1))}</span>`}<span><bdi>${esc(nameOf(item))}</bdi><small dir="ltr">${esc(item.name_en)}</small>${isBrands && item.is_exclusive ? `<em class="${a.exclusiveStatus}">${t("exclusiveBadge")}</em>` : ""}</span></div></td><td>${c === "products" ? money(item.final_price) : c === "companies" ? number(data.products.filter((p) => p.company_id === item.id).length) : `<bdi>${esc(nameOf(data.companies.find((b) => b.id === item.company_id)))}</bdi>`}</td><td><div class="${a.tableActions}"><a class="${s.iconButton}" href="#/admin/${c}/edit/${encodeURIComponent(item.id)}" aria-label="${t("edit")}: ${esc(nameOf(item))}">${icon("edit")}</a><button type="button" class="${s.iconButton}" data-delete="${esc(item.id)}" aria-label="${t("delete")}: ${esc(nameOf(item))}">${icon("trash")}</button>${isBrands ? brandCsvActions(item) : ""}</div></td></tr>`).join("")}</tbody></table></div>${pagination(page.page, page.pages)}` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
 }
 function userList(users, q) {
   const usernameOf = (user) => user.username || user.user || user.email || "";
@@ -142,7 +144,7 @@ function editor(data, route, c) {
           false,
         )
       : "";
-  return `<div class="${a.head}"><h1 tabindex="-1">${t(edit ? "editItem" : "newItem")} · ${t(labelFor(c))}</h1></div>${c !== "companies" && !data.companies.length ? `<p class="${s.banner}">${t("noBrands")}</p>` : ""}<form id="editor-form" class="${a.form}" novalidate data-collection="${c}" data-id="${esc(item.id || "")}" data-revision="${item.revision || 0}"><div class="${a.formGrid}">${field("name_ar", "nameAr", item.name_ar, { required: true, dir: "rtl", extra: 'maxlength="180"' })}${field("name_en", "nameEn", item.name_en, { required: true, dir: "ltr", extra: 'maxlength="180"' })}${c === "companies" ? `${field("phone", "phone", item.phone, { type: "tel", dir: "ltr", extra: 'maxlength="30"' })}${parents}` : selectField("company_id", "brand", [["", t("chooseBrand")], ...data.companies.map((b) => [b.id, nameOf(b)])], item.company_id || "")}${
+  return `<div class="${a.head}"><h1 tabindex="-1">${t(edit ? "editItem" : "newItem")} · ${t(labelFor(c))}</h1></div>${c !== "companies" && !data.companies.length ? `<p class="${s.banner}">${t("noBrands")}</p>` : ""}<form id="editor-form" class="${a.form}" novalidate data-collection="${c}" data-id="${esc(item.id || "")}" data-revision="${item.revision || 0}"><div class="${a.formGrid}">${field("name_ar", "nameAr", item.name_ar, { required: true, dir: "rtl", extra: 'maxlength="180"' })}${field("name_en", "nameEn", item.name_en, { required: true, dir: "ltr", extra: 'maxlength="180"' })}${c === "companies" ? `${field("phone", "phone", item.phone, { type: "tel", dir: "ltr", extra: 'maxlength="30"' })}${parents}<div class="${a.field} ${a.full}"><label class="${a.checkField}" for="field-is-exclusive"><input id="field-is-exclusive" name="is_exclusive" type="checkbox" value="true" ${item.is_exclusive ? "checked" : ""} /><span><strong>${t("exclusiveField")}</strong><small>${t("exclusiveHelp")}</small></span></label></div>` : selectField("company_id", "brand", [["", t("chooseBrand")], ...data.companies.map((b) => [b.id, nameOf(b)])], item.company_id || "")}${
     c === "products"
       ? `${field("size_value", "sizeValue", item.size_value, { required: true, type: "number", extra: 'min="0.01" max="100000" step="0.01"' })}${selectField(
           "size_unit",
@@ -155,6 +157,9 @@ function editor(data, route, c) {
         )}${field("final_price", "price", item.final_price, { required: true, type: "number", extra: 'min="0" max="10000000" step="0.01"' })}${field("qty", "qty", item.qty, { type: "number", extra: 'min="1" max="100000" step="1"' })}${field("discount", "discountField", item.discount, { type: "number", extra: 'min="0" max="100" step="0.01"' })}${field("product_url", "productPageUrl", item.product_url, { type: "url", full: true, dir: "ltr" })}`
       : ""
   }${c === "offers" ? `${field("description_ar", "descriptionAr", item.description_ar, { required: true, dir: "rtl", extra: 'maxlength="300"' })}${field("description_en", "descriptionEn", item.description_en, { required: true, dir: "ltr", extra: 'maxlength="300"' })}` : ""}${imageFields(c, item, imgKey)}</div><p id="form-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}" ${c !== "companies" && !data.companies.length ? "disabled" : ""}>${t("save")}</button><a class="${s.button} ${s.secondary}" href="#/admin/${c}">${t("cancel")}</a></div></form>`;
+}
+function consultationSettingsPage(settings) {
+  return `<div class="${a.head}"><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t("consultationSettings")}</h1><p>${t("consultationSettingsText")}</p></div><form id="consultation-settings-form" class="${a.form} ${a.settingsForm}" novalidate data-revision="${settings.revision}"><div class="${a.field}"><label for="consultation-phone">${t("consultationPhone")}</label><input id="consultation-phone" name="whatsapp_phone" type="tel" dir="ltr" required autocomplete="tel" value="${esc(settings.whatsapp_phone)}" aria-describedby="consultation-phone-help consultation-phone-error" /><small id="consultation-phone-help">${t("consultationPhoneHelp")}</small><span id="consultation-phone-error" class="${s.error}"></span></div><p id="consultation-settings-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}">${t("save")}</button><a class="${s.button} ${s.secondary}" href="${esc(consultationUrl(settings.whatsapp_phone))}" target="_blank" rel="noopener noreferrer">${t("medicalConsultation")}${arrow()}</a></div></form>`;
 }
 function userEditor(users, route) {
   const edit = route.parts[2] === "edit";
@@ -215,20 +220,25 @@ function importErrorMessage(error) {
 }
 export function adminPage(data, route, authState) {
   const c = route.parts[1];
-  if (c && ![...collections, "users", "images"].includes(c)) return notFound();
+  if (c && ![...collections, "users", "images", "settings"].includes(c))
+    return notFound();
   const content = !c
     ? overview(data, authState)
-    : c === "images"
-      ? imageLibrary()
-      : c === "users"
-        ? route.parts[2]
-          ? userEditor(authState.users || [], route)
-          : `${authState.usersError ? `<p id="admin-error" class="${s.error}" role="alert">${t("userError")} <button type="button" id="retry-users" class="${s.ghost}" onclick="this.dispatchEvent(new Event('clinic-retry-users'))">${t("retry")}</button></p>` : ""}${list(data, route, c, authState.users || [])}`
-        : route.parts[2]
-          ? ["new", "edit"].includes(route.parts[2])
-            ? editor(data, route, c)
-            : notFound()
-          : list(data, route, c);
+    : c === "settings"
+      ? route.parts[2]
+        ? notFound()
+        : consultationSettingsPage(data.settings)
+      : c === "images"
+        ? imageLibrary()
+        : c === "users"
+          ? route.parts[2]
+            ? userEditor(authState.users || [], route)
+            : `${authState.usersError ? `<p id="admin-error" class="${s.error}" role="alert">${t("userError")} <button type="button" id="retry-users" class="${s.ghost}" onclick="this.dispatchEvent(new Event('clinic-retry-users'))">${t("retry")}</button></p>` : ""}${list(data, route, c, authState.users || [])}`
+          : route.parts[2]
+            ? ["new", "edit"].includes(route.parts[2])
+              ? editor(data, route, c)
+              : notFound()
+            : list(data, route, c);
   const csvTools =
     c === "companies"
       ? `<input id="brand-import-file" type="file" accept=".csv,text/csv" hidden /><div id="brand-import-preview"></div>`
@@ -367,10 +377,10 @@ function bindBrandCsv(root, data, signal, render) {
         const result = await importBrandProducts(brand.id, rows, true);
         if (requestId !== previewRequest) return;
         pending = result.ok ? { brand, rows } : null;
-        previewRoot.innerHTML = `${importPreview(result)}${result.ok ? `<div class="${a.importActions}"><button type="button" class="${s.button} ${s.primary}" id="apply-brand-import">${t("applyImport")}</button></div>` : ""}`;
+        previewRoot.innerHTML = `${importPreview(result)}${result.ok ? `<div class="${a.importActions}"><button type="button" class="${s.button} ${s.primary}" id="apply-brand-import" onclick="this.dispatchEvent(new Event('clinic-apply-brand-import'))">${t("applyImport")}</button></div>` : ""}`;
         bindImportResult(previewRoot, result, brand, signal);
         previewRoot.querySelector("#apply-brand-import")?.addEventListener(
-          "click",
+          "clinic-apply-brand-import",
           async (event) => {
             if (!pending || applying) return;
             const batch = pending;
@@ -611,6 +621,8 @@ function bindBulkUploader(root, signal) {
 export function bindAdmin(root, data, route, context) {
   const { signal, render, navigate, authState } = context;
   if (route.parts[1] === "images") bindBulkUploader(root, signal);
+  const settingsForm = root.querySelector("#consultation-settings-form");
+  if (settingsForm) bindConsultationSettings(root, settingsForm, context);
   if (route.parts[1] === "companies") bindBrandCsv(root, data, signal, render);
   root.querySelectorAll("[data-delete]").forEach((btn) =>
     btn.addEventListener(
@@ -666,6 +678,52 @@ export function bindAdmin(root, data, route, context) {
       authState.users = undefined;
       authState.usersError = false;
       await render();
+    },
+    { signal },
+  );
+}
+function bindConsultationSettings(root, form, context) {
+  const { signal, render } = context;
+  form.addEventListener(
+    "input",
+    () => {
+      dirty = true;
+    },
+    { signal },
+  );
+  form.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+      if (form.dataset.busy === "true") return;
+      const input = form.elements.whatsapp_phone;
+      const error = root.querySelector("#consultation-phone-error");
+      const summary = root.querySelector("#consultation-settings-error");
+      input.removeAttribute("aria-invalid");
+      error.textContent = "";
+      summary.textContent = "";
+      const phone = normalizeWhatsappPhone(input.value);
+      if (!phone) {
+        input.setAttribute("aria-invalid", "true");
+        error.textContent = t("invalidPhone");
+        input.focus();
+        return;
+      }
+      const submit = form.querySelector('[type="submit"]');
+      form.dataset.busy = "true";
+      submit.disabled = true;
+      submit.textContent = t("saving");
+      try {
+        await saveConsultationSettings(phone, Number(form.dataset.revision));
+        dirty = false;
+        notify(t("saved"));
+        await render({ focus: true });
+      } catch (issue) {
+        summary.textContent = errorMessage(issue);
+        submit.disabled = false;
+        submit.textContent = t("save");
+        form.dataset.busy = "false";
+      }
     },
     { signal },
   );
@@ -833,6 +891,7 @@ function bindEditor(root, form, data, context) {
         Object.assign(record, {
           phone: values.phone.trim(),
           parent_id: values.parent_id || null,
+          is_exclusive: values.is_exclusive === "true",
         });
       else record.company_id = values.company_id;
       if (c === "products")

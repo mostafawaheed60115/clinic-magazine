@@ -23,6 +23,8 @@ Initial route is sign-in for unauthenticated visitors; direct protected links re
 
 ## Data and storage
 
+The exclusive brand flag is stored on `companies` and defaults to false. The consultation number is held in a singleton `app_settings` row; active members may read it and only admins may update it. Revision checks protect concurrent settings edits. The WhatsApp link is built from a validated international phone number and a fixed, encoded Arabic message.
+
 Supabase owns production companies, products, offers, users, admin membership, and catalog images. RLS denies anonymous catalog access and authorizes active members to read; only admins may write catalog content or upload to the `clinic-images` Storage bucket. Company parent and product/offer foreign keys have indexes. Revision checks prevent stale overwrites. Referenced companies cannot be deleted. No plaintext application password columns. Failed upload or database write preserves the editor with an actionable error; saving must not report success until the link is persisted. IndexedDB exists only in explicitly selected demo mode and never substitutes for failed Supabase calls.
 
 Brand product CSVs use a versioned schema with product ID and revision as the preferred update key and normalized English name as the fallback. Blank cells preserve existing values; a supplied image URL replaces the current image URL. Imports are validated in a dry-run RPC before an atomic apply, capped at 5 MB/5,000 rows, scoped to the selected brand, and reject stale revisions, duplicate keys, cross-brand IDs, invalid HTTPS URLs, and formula-injection values are escaped on export.
@@ -36,5 +38,7 @@ Arabic and English names/descriptions are editable. Required names, positive siz
 Delete, disable-account and demo-only reset require app-owned dialogs naming consequences. Cancel initially focused. No production reset-data action. Dirty editors guard in-app navigation and actual page unload. Save failure does not lose input. No self-disable or self-service admin promotion. Production Auth sessions are validated before privileged operations.
 
 ## States and accessibility
+
+The exclusive directory supports search, pagination, and a distinct empty state. Product table rows preserve complete images with `object-fit: contain`, maintain semantic column headers, and scroll horizontally inside a labeled region on narrow screens. The consultation link is a named, keyboard-focusable external anchor and stays off login screens.
 
 Initial session check, login errors, no records, no results, image fallback, unknown route, upload/network failure and conflict use localized messages and recovery controls. Dialogs restore focus; route navigation focuses heading. Semantic links/buttons, keyboard controls, reduced motion, localized EGP/number formatting. Demo notice appears only in explicit preview mode. Login remains accessible at narrow widths; no catalog data is fetched before membership is confirmed.

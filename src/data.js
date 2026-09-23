@@ -30,6 +30,7 @@ export function seedData() {
       name_ar,
       phone: "",
       logo_url: "",
+      is_exclusive: false,
       tagline,
       style: i % 5,
       revision: 1,

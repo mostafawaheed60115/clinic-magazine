@@ -734,6 +734,54 @@
   font-size: 18px;
   font-weight: 800;
 }
+.exclusiveStatus {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  color: var(--primary-deep);
+  background: var(--background);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+.checkField {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 58px;
+  padding: 12px 15px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  cursor: pointer;
+}
+.checkField input {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  flex: 0 0 auto;
+  padding: 0;
+  accent-color: var(--primary-deep);
+}
+.checkField span {
+  display: grid;
+  gap: 2px;
+}
+.checkField small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.settingsForm {
+  max-width: 680px;
+}
+.settingsForm .errorSummary:empty {
+  display: none;
+}
+.settingsForm .formActions {
+  margin-top: 0;
+}
 .utilityPage {
   max-width: 1080px;
 }

@@ -42,6 +42,7 @@ const columns = {
     "parent",
     "parent_id",
     "logo_url",
+    "is_exclusive",
     "revision",
     "create_date",
   ],
@@ -84,6 +85,7 @@ const localFields = {
     "parent",
     "parent_id",
     "logo_url",
+    "is_exclusive",
     "revision",
   ],
   products: [
@@ -209,10 +211,35 @@ async function readCollection(collection) {
 }
 
 export async function readCatalog() {
-  const values = await Promise.all(COLLECTIONS.map(readCollection));
-  return Object.fromEntries(
-    COLLECTIONS.map((collection, index) => [collection, values[index]]),
-  );
+  const [values, settingsResult] = await Promise.all([
+    Promise.all(COLLECTIONS.map(readCollection)),
+    requireClient()
+      .from("app_settings")
+      .select("id, whatsapp_phone, revision")
+      .eq("id", 1)
+      .single(),
+  ]);
+  if (settingsResult.error) throw settingsResult.error;
+  return {
+    ...Object.fromEntries(
+      COLLECTIONS.map((collection, index) => [collection, values[index]]),
+    ),
+    settings: settingsResult.data,
+  };
+}
+
+export async function saveConsultationSettings(phone, expectedRevision) {
+  const { data, error } = await requireClient()
+    .from("app_settings")
+    .update({ whatsapp_phone: phone, revision: expectedRevision + 1 })
+    .eq("id", 1)
+    .eq("revision", expectedRevision)
+    .select("id, whatsapp_phone, revision")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data)
+    throw errorWithCode("Settings changed in another session", "conflict");
+  return data;
 }
 
 export async function saveCatalogItem(collection, item, expectedRevision) {

@@ -49,6 +49,72 @@ test("brand tiles keep the localized name visible beside the mark", async ({
   await expect(firstBrand.locator("strong")).not.toHaveText("");
 });
 
+test("exclusive brands, product table and consultation settings work together", async ({
+  page,
+}) => {
+  await english(page);
+  await page.goto("/#/brand/luma");
+  await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.getByRole("columnheader")).toHaveCount(5);
+  await expect(page.locator("main table tbody tr")).toHaveCount(8);
+  expect(
+    await page
+      .locator("main table img")
+      .first()
+      .evaluate((img) => getComputedStyle(img).objectFit),
+  ).toBe("contain");
+  expect(
+    await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
+  ).toBe("rgb(250, 235, 248)");
+  const initialConsultation = page.getByRole("link", {
+    name: "Ask for medical consultant",
+  });
+  await expect(initialConsultation).toHaveAttribute(
+    "href",
+    /wa\.me\/201062270083\?text=/,
+  );
+
+  await login(page);
+  await page.goto("/#/admin/companies?q=LUMA");
+  await page.getByRole("link", { name: "Edit: LUMA" }).click();
+  await page.locator("#field-is-exclusive").check();
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page).toHaveURL(/#\/admin\/companies$/);
+  await page.goto("/#/exclusive");
+  await expect(page.locator('main a[href="#/brand/luma"]')).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Exclusive brands" }),
+  ).toBeVisible();
+
+  await page.goto("/#/admin/settings");
+  await page.locator("#consultation-phone").fill("invalid");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.locator("#consultation-phone")).toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
+  await page.locator("#consultation-phone").fill("01011111111");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.locator("#consultation-phone")).toHaveValue(
+    "+201011111111",
+  );
+  await page.goto("/#/offers");
+  const href = await page
+    .getByRole("link", { name: "Ask for medical consultant" })
+    .getAttribute("href");
+  expect(href).toContain("wa.me/201011111111");
+  expect(new URL(href).searchParams.get("text")).toBe(
+    "مرحبا ...  أريد استشارة طبية من خبير ديرموكوزمتكس",
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/#/brand/luma");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
+
 test("brand discovery links lift on hover and keep their destinations on mobile", async ({
   page,
 }) => {
@@ -233,21 +299,21 @@ test("catalog search, pagination, history, unknown routes, fallback images", asy
   await page.locator("#clear-search").click();
   await expect(page.locator("#catalog-search")).toBeFocused();
   await page.goto("/#/brand/luma");
-  await expect(page.locator("main article")).toHaveCount(8);
+  await expect(page.locator("main table tbody tr")).toHaveCount(8);
   await page.getByRole("button", { name: "Next", exact: true }).click();
-  await expect(page.locator("main article")).toHaveCount(1);
+  await expect(page.locator("main table tbody tr")).toHaveCount(1);
   await page.goto("/#/brand/missing");
   await expect(page.locator("h1")).toHaveText("Page not found");
   await page.goto("/#/missing");
   await expect(page.locator("h1")).toHaveText("Page not found");
   await page.goto("/#/brand/luma");
   await page
-    .locator("article img")
+    .locator("main table img")
     .first()
     .evaluate((img) => {
       img.src = "https://invalid.example.test/missing.png";
     });
-  await expect(page.locator("article img").first()).toHaveAttribute(
+  await expect(page.locator("main table img").first()).toHaveAttribute(
     "src",
     "./assets/image-fallback.svg",
   );

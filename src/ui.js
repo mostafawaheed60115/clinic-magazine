@@ -28,6 +28,8 @@ const paths = {
     "M14 4h6v6m-1-5L10 14M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5",
   user: "M20 21a8 8 0 0 0-16 0M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8",
   image: "M4 5h16v14H4zM4 16l4-4 3 3 2-2 7 5M15 9h.01",
+  whatsapp:
+    "M20.4 11.5a8.4 8.4 0 0 1-12.2 7.4L3 20l1.2-5.1a8.4 8.4 0 1 1 16.2-3.4ZM8.3 7.8c-.3.2-.6.9-.5 1.4.2 1.6 2.7 4.6 4.8 5.5 1.1.5 2 .4 2.6 0l.7-1.1-2.1-1.1-.9 1c-1.5-.7-2.5-1.7-3.2-3.2l.9-.9-1-2.1-1.3.5Z",
 };
 export function icon(name, extra = "") {
   return `<svg class="${s.icon} ${extra}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.arrow}"/></svg>`;

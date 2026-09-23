@@ -38,6 +38,10 @@ assets/color palette.txt and assets/logo_temp.jpg. No real catalog, offers or pr
 
 Image-led discovery; quickly find brands; clear pack sizes and prices; honest sample content; consistent bilingual controls.
 
+## Exclusive brands and consultation
+
+Administrators can mark a brand as exclusive; the catalog exposes those brands in a dedicated navigation tab and marks them in the regular directory. Brand product lists use a table with full-image thumbnails, pack information, final prices, and links to the larger product detail image. A floating WhatsApp consultation link is available to signed-in buyers. Its destination is stored in an admin-editable setting, initially +201062270083, and opens a prefilled Arabic message. The app does not collect consultation messages.
+
 ## Accessibility & Inclusion
 
 Target WCAG 2.2 AA, keyboard alternatives to swipe, reduced motion, RTL and readable touch layouts.

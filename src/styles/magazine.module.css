@@ -2285,3 +2285,243 @@ html[lang="ar"] .loginPanel h1 {
     transform: none;
   }
 }
+
+/* Catalog rows keep the whole product image visible and a clear detail target. */
+.tableScrollHint {
+  display: none;
+}
+.productTableWrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--elevation-1);
+}
+.productTable {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: start;
+}
+.productTable th,
+.productTable td {
+  padding: 15px 18px;
+  border-block-end: 1px solid var(--line);
+  text-align: start;
+  vertical-align: middle;
+}
+.productTable th {
+  color: var(--muted);
+  background: var(--surface-tint);
+  font-size: 12px;
+  font-weight: 750;
+}
+.productTable tbody tr:last-child td {
+  border-block-end: 0;
+}
+.productTable tbody tr {
+  transition: background 180ms var(--ease);
+}
+.productTable tbody tr:hover,
+.productTable tbody tr:focus-within {
+  background: #fdf4fb;
+}
+.productTable td:first-child {
+  min-width: 255px;
+}
+.productTableIdentity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.productTableImage {
+  display: grid;
+  width: 88px;
+  height: 88px;
+  flex: 0 0 88px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.productTableImage img {
+  width: 100%;
+  height: 100%;
+  padding: 5px;
+  object-fit: contain;
+  transition: transform 240ms var(--ease);
+}
+.productTableIdentity:hover img,
+.productTableIdentity:focus-visible img {
+  transform: scale(1.08);
+}
+.productTableName {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.productTableName strong {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.4;
+}
+.productTableName small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+.tableDiscount {
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 20px;
+  color: var(--primary-deep);
+  background: var(--surface-tint);
+  font-size: 11px;
+  font-weight: 750;
+}
+.productTablePrice {
+  white-space: nowrap;
+  color: var(--ink);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.productTableAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding-inline: 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--primary-deep);
+  background: var(--paper);
+  white-space: nowrap;
+  font-weight: 750;
+}
+.productTableAction:hover {
+  border-color: var(--primary);
+  background: var(--surface-tint);
+}
+.productTableAction svg {
+  width: 16px;
+  height: 16px;
+}
+.exclusiveBadge,
+.heroExclusive {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 99px;
+  color: var(--primary-deep);
+  background: var(--background);
+  box-shadow: inset 0 0 0 1px rgb(47 116 72 / 0.16);
+  font-size: 11px;
+  font-weight: 800;
+}
+.exclusiveBadge {
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-start: 10px;
+}
+.heroExclusive {
+  margin-block: 4px 8px;
+}
+.consultationButton {
+  position: fixed;
+  z-index: var(--z-popover);
+  inset-inline-end: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  max-width: calc(100vw - 36px);
+  padding: 10px 17px;
+  border: 1px solid rgb(255 255 255 / 0.56);
+  border-radius: 99px;
+  color: #fff;
+  background: var(--primary-deep);
+  box-shadow:
+    0 8px 0 rgb(30 51 40 / 0.2),
+    0 18px 36px rgb(30 51 40 / 0.26);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
+  transition:
+    transform 220ms var(--ease-spring),
+    box-shadow 220ms var(--ease-spring);
+}
+html[dir="rtl"] .consultationButton {
+  inset-inline-end: max(18px, env(safe-area-inset-left));
+}
+.consultationButton svg {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+.consultationButton:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 0 rgb(30 51 40 / 0.18),
+    0 22px 40px rgb(30 51 40 / 0.28);
+}
+.consultationButton:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 rgb(30 51 40 / 0.2),
+    0 6px 14px rgb(30 51 40 / 0.22);
+}
+@media (max-width: 680px) {
+  .tableScrollHint {
+    display: block;
+    margin-block: 0 9px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .nav {
+    min-width: 0;
+    max-width: 100%;
+    justify-content: flex-start;
+    gap: 4px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .nav a {
+    flex: 0 0 auto;
+  }
+  .productTable th,
+  .productTable td {
+    padding: 11px 13px;
+  }
+  .productTableImage {
+    width: 76px;
+    height: 76px;
+    flex-basis: 76px;
+  }
+  .consultationButton {
+    inset-inline-end: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    min-height: 50px;
+    padding-inline: 13px;
+    font-size: 12px;
+  }
+  html[dir="rtl"] .consultationButton {
+    inset-inline-end: max(12px, env(safe-area-inset-left));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .productTable tbody tr,
+  .productTableImage img,
+  .consultationButton {
+    transition: none;
+  }
+  .consultationButton:hover,
+  .consultationButton:active {
+    transform: none;
+  }
+}

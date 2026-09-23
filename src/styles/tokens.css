@@ -8,8 +8,8 @@
   --z-dialog: 600;
   --z-sheet: 700;
   --z-toast: 900;
-  /* Clinic's current identity: a calm linen field with botanical green action color. */
-  --background: #f6f1eb;
+  /* A soft orchid canvas keeps the botanical green controls legible. */
+  --background: #faebf8;
   --primary: #75af8e;
   --primary-deep: #2f7448;
   --ink: #1e3328;
@@ -53,8 +53,8 @@
   --surface-gradient: linear-gradient(135deg, #fffdf9 0%, #f3efe6 100%);
   --wash-gradient: linear-gradient(
     135deg,
-    #eaf3ec 0%,
-    #f6f1eb 58%,
+    #faebf8 0%,
+    #fdf4fb 58%,
     #fffdf9 100%
   );
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -95,13 +95,7 @@ body {
   margin: 0;
   font-size: 15px;
   line-height: 1.65;
-  background:
-    radial-gradient(
-      ellipse at 7% 3%,
-      rgb(207 228 212 / 0.34),
-      transparent 32rem
-    ),
-    var(--wash-gradient);
+  background: var(--background);
 }
 button,
 input,

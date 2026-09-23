@@ -1,4 +1,5 @@
 import { seedData } from "./data.js";
+import { DEFAULT_CONSULTATION_SETTINGS } from "./consultation.js";
 
 export const collections = ["companies", "products", "offers"];
 export const channel =
@@ -55,15 +56,46 @@ export async function openStore() {
 
 export async function readAll() {
   await openStore();
-  const tx = db.transaction(collections, "readonly");
+  const tx = db.transaction([...collections, "meta"], "readonly");
+  const settingsRead = result(tx.objectStore("meta").get("settings"));
   const values = await Promise.all(
     collections.map((collection) =>
       result(tx.objectStore(collection).getAll()),
     ),
   );
-  return Object.fromEntries(
-    collections.map((collection, i) => [collection, values[i]]),
-  );
+  const settings = await settingsRead;
+  return {
+    ...Object.fromEntries(
+      collections.map((collection, i) => [collection, values[i]]),
+    ),
+    settings: settings?.value || DEFAULT_CONSULTATION_SETTINGS,
+  };
+}
+
+export async function saveConsultationSettings(phone, expectedRevision) {
+  await openStore();
+  const tx = db.transaction("meta", "readwrite");
+  const done = finished(tx);
+  const store = tx.objectStore("meta");
+  const current =
+    (await result(store.get("settings")))?.value ||
+    DEFAULT_CONSULTATION_SETTINGS;
+  if (current.revision !== expectedRevision) {
+    tx.abort();
+    await done.catch(() => {});
+    const error = new Error("Settings changed in another window");
+    error.code = "conflict";
+    throw error;
+  }
+  const settings = {
+    ...current,
+    whatsapp_phone: phone,
+    revision: expectedRevision + 1,
+  };
+  store.put({ id: "settings", value: settings });
+  await done;
+  channel?.postMessage("updated");
+  return settings;
 }
 
 export async function saveItem(collection, item, expectedRevision) {
@@ -117,7 +149,7 @@ export async function deleteItem(collection, id, revision) {
 
 export async function resetStore() {
   await openStore();
-  const tx = db.transaction(collections, "readwrite");
+  const tx = db.transaction([...collections, "meta"], "readwrite");
   const done = finished(tx);
   const seed = seedData();
   for (const collection of collections) {
@@ -126,6 +158,10 @@ export async function resetStore() {
     for (const item of seed[collection])
       tx.objectStore(collection).put({ ...item, revision: Date.now() });
   }
+  tx.objectStore("meta").put({
+    id: "settings",
+    value: { ...DEFAULT_CONSULTATION_SETTINGS, revision: Date.now() },
+  });
   await done;
   channel?.postMessage("updated");
 }

@@ -12,6 +12,13 @@ const storageMigration = await readFile(
   new URL("../migrations/20260920112430_clinic_storage.sql", import.meta.url),
   "utf8",
 );
+const consultationMigration = await readFile(
+  new URL(
+    "../migrations/20260923202639_exclusive_brands_consultation_settings.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 for (const table of ["users", "admin", "companies", "products", "offers"]) {
   assert.match(
@@ -54,5 +61,24 @@ assert.match(storageMigration, /name like 'clinic\/%'/);
 assert.match(storageMigration, /for insert to authenticated/);
 assert.match(storageMigration, /for update to authenticated/);
 assert.match(storageMigration, /for delete to authenticated/);
+assert.match(
+  consultationMigration,
+  /add column is_exclusive boolean not null default false/,
+);
+assert.match(consultationMigration, /create table public\.app_settings/);
+assert.match(
+  consultationMigration,
+  /alter table public\.app_settings enable row level security/,
+);
+assert.match(consultationMigration, /app_settings_member_select/);
+assert.match(consultationMigration, /app_settings_admin_update/);
+assert.match(
+  consultationMigration,
+  /with check \(\(select private\.is_admin\(\)\)\)/,
+);
+assert.match(
+  consultationMigration,
+  /grant select, update on table public\.app_settings to authenticated/,
+);
 
 console.log("Clinic Supabase schema contract passed");

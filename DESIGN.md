@@ -1,7 +1,7 @@
 ---
 version: alpha
 colors:
-  background: "#f6f1eb"
+  background: "#faebf8"
   primary: "#75af8e"
   foreground: "#1e3328"
   accent: "#439a62"
@@ -45,15 +45,15 @@ components:
 
 ## Overview
 
-User-approved offer cover plus catalog. An editorial cosmetics campaign spread on warm linen and botanical green, with tactile paper depth and crisp dimensional accents. Public pages combine brand expression and catalog utility; admin prioritizes operations. No generic SaaS metrics hero. The signature is a wide photographic campaign cover with a restrained layered/parallax-like hover and purposeful slide movement.
+User-approved offer cover plus catalog. An editorial cosmetics campaign spread on a soft orchid canvas and botanical green, with tactile paper depth and crisp dimensional accents. Public pages combine brand expression and catalog utility; admin prioritizes operations. No generic SaaS metrics hero. The signature is a wide photographic campaign cover with a restrained layered/parallax-like hover and purposeful slide movement.
 
-The 2026-09-20 extension places a branded sign-in surface before the magazine. Preserve the current green/linen palette, fonts and supplied logo: a desktop campaign image accompanies a calm, focused login form; on phones the form takes priority. Company search is prominent after sign-in. Product detail pages expose image and product links without making purchase claims. Admin management shares the same controls and tokens with denser content and a navigable narrow-screen layout.
+The 2026-09-20 extension places a branded sign-in surface before the magazine. Preserve the green action palette, fonts and supplied logo while the global canvas uses #faebf8: a desktop campaign image accompanies a calm, focused login form; on phones the form takes priority. Company search is prominent after sign-in. Product detail pages expose image and product links without making purchase claims. Admin management shares the same controls and tokens with denser content and a navigable narrow-screen layout.
 
 The operations-desk refresh adds a visible brand identity (mark plus localized name), per-brand CSV actions, and an image-library utility. CSV workflows are preview-first and explain row-level errors before applying changes. The image library keeps filenames and resulting public URLs together so URLs can be copied or downloaded as a mapping file without losing context. Admin is a calm studio desk: clearly grouped navigation, expressive but legible status, dimensional collection tiles, and responsive tables/forms that retain their full workflow on phones.
 
 ## Colors
 
-Use the supplied palette. Deep green text on linen and parchment surfaces. Shamrock green carries actions; muted teal and sage support surfaces. CSS tokens in src/styles/tokens.css own runtime values and map directly to this document.
+Use the supplied palette. Deep green text on the orchid canvas and parchment surfaces. Shamrock green carries actions; muted teal and sage support surfaces. CSS tokens in src/styles/tokens.css own runtime values and map directly to this document.
 
 ## Typography
 
