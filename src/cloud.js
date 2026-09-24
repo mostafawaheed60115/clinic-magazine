@@ -210,14 +210,53 @@ async function readCollection(collection) {
   }
 }
 
+// Page through event data so the admin participant list does not stop at the
+// Data API's per-request row cap.
+async function readEventRows(table, fields, sortColumn) {
+  const rows = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    if (offset >= MAX_ROWS)
+      throw errorWithCode(
+        `${table} exceeds the configured bound`,
+        "too_many_rows",
+      );
+    let query = requireClient()
+      .from(table)
+      .select(fields)
+      .order(sortColumn, { ascending: false });
+    query =
+      table === "events"
+        ? query.order("id", { ascending: true })
+        : query
+            .order("event_id", { ascending: true })
+            .order("user_id", { ascending: true });
+    const { data, error } = await query.range(offset, offset + PAGE_SIZE - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < PAGE_SIZE) return rows;
+  }
+}
+
 export async function readCatalog() {
-  const [values, settingsResult] = await Promise.all([
+  const [values, settingsResult, events, participants] = await Promise.all([
     Promise.all(COLLECTIONS.map(readCollection)),
     requireClient()
       .from("app_settings")
-      .select("id, whatsapp_phone, revision")
+      .select(
+        "id, whatsapp_phone, customer_service_phone, contact_phone, revision",
+      )
       .eq("id", 1)
       .single(),
+    readEventRows(
+      "events",
+      "id, name, description, start_date, end_date, revision",
+      "start_date",
+    ),
+    readEventRows(
+      "event_participants",
+      "event_id, user_id, username, name, phone, registered_at",
+      "registered_at",
+    ),
   ]);
   if (settingsResult.error) throw settingsResult.error;
   return {
@@ -225,21 +264,58 @@ export async function readCatalog() {
       COLLECTIONS.map((collection, index) => [collection, values[index]]),
     ),
     settings: settingsResult.data,
+    events,
+    event_participants: participants,
   };
 }
 
-export async function saveConsultationSettings(phone, expectedRevision) {
+export async function saveConsultationSettings(settings, expectedRevision) {
   const { data, error } = await requireClient()
     .from("app_settings")
-    .update({ whatsapp_phone: phone, revision: expectedRevision + 1 })
+    .update({ ...settings, revision: expectedRevision + 1 })
     .eq("id", 1)
     .eq("revision", expectedRevision)
-    .select("id, whatsapp_phone, revision")
+    .select(
+      "id, whatsapp_phone, customer_service_phone, contact_phone, revision",
+    )
     .maybeSingle();
   if (error) throw error;
   if (!data)
     throw errorWithCode("Settings changed in another session", "conflict");
   return data;
+}
+
+export async function saveEvent(event, expectedRevision = 0) {
+  const client = requireClient();
+  const record = {
+    name: event.name,
+    description: event.description,
+    start_date: event.start_date,
+    end_date: event.end_date,
+  };
+  const query = expectedRevision
+    ? client
+        .from("events")
+        .update({ ...record, revision: expectedRevision + 1 })
+        .eq("id", event.id)
+        .eq("revision", expectedRevision)
+    : client.from("events").insert(record);
+  const { data, error } = await query.select().maybeSingle();
+  if (error) throw error;
+  if (!data)
+    throw errorWithCode("Event changed in another session", "conflict");
+  return data;
+}
+
+export async function registerForEvent(eventId, userId, name, phone) {
+  const { error } = await requireClient().from("event_participants").insert({
+    event_id: eventId,
+    user_id: userId,
+    name,
+    phone,
+    username: "pending",
+  });
+  if (error) throw error;
 }
 
 export async function saveCatalogItem(collection, item, expectedRevision) {

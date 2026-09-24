@@ -40,6 +40,50 @@ test("localization dictionaries have complete parity", () => {
   );
 });
 
+test("admin creates an event and a signed-in buyer registers once", async ({
+  page,
+}) => {
+  await english(page);
+  await login(page);
+  await page.goto("/#/admin/events");
+  const today = await page.evaluate(() =>
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Cairo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date()),
+  );
+  await page.locator('#event-editor [name="name"]').fill("Clinic day");
+  await page
+    .locator('#event-editor [name="description"]')
+    .fill("Meet the Clinic team.");
+  await page.locator('#event-editor [name="start_date"]').fill(today);
+  await page.locator('#event-editor [name="end_date"]').fill(today);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { name: "Clinic day" })).toBeVisible();
+  await page.evaluate(async () => {
+    const auth = await import("/src/auth.js");
+    await auth.signOut();
+    await auth.signIn("demo", "clinic");
+  });
+  await page.goto("/#/events");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("link", { name: "Events" })).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({ path: "work/mobile-events-en.png", fullPage: true });
+  await page.locator('[data-event-id] [name="name"]').fill("Buyer One");
+  await page.locator('[data-event-id] [name="phone"]').fill("01011111111");
+  await page.getByRole("button", { name: "Confirm participation" }).click();
+  await expect(page.getByText("You are registered")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("You are registered")).toBeVisible();
+});
+
 test("brand tiles keep the localized name visible beside the mark", async ({
   page,
 }) => {
@@ -87,18 +131,22 @@ test("exclusive brands, product table and consultation settings work together", 
   ).toBeVisible();
 
   await page.goto("/#/admin/settings");
-  await page.locator("#consultation-phone").fill("invalid");
+  await page.locator("#whatsapp_phone").fill("invalid");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.locator("#consultation-phone")).toHaveAttribute(
+  await expect(page.locator("#whatsapp_phone")).toHaveAttribute(
     "aria-invalid",
     "true",
   );
-  await page.locator("#consultation-phone").fill("01011111111");
+  await page.locator("#whatsapp_phone").fill("01011111111");
+  await page.locator("#customer_service_phone").fill("01022222222");
+  await page.locator("#contact_phone").fill("0881234567");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.locator("#consultation-phone")).toHaveValue(
-    "+201011111111",
-  );
+  await expect(page.locator("#whatsapp_phone")).toHaveValue("+201011111111");
   await page.goto("/#/offers");
+  await expect(
+    page.getByRole("link", { name: "Customer Service" }),
+  ).toHaveAttribute("href", "tel:+201022222222");
+  await expect(page.locator('footer a[href="tel:+20881234567"]')).toBeVisible();
   const href = await page
     .getByRole("link", { name: "Ask for medical consultant" })
     .getAttribute("href");
@@ -510,7 +558,7 @@ test("empty catalogs, long Arabic names and safe text rendering", async ({
   await page.goto("/");
   await page.locator("#cover").waitFor();
   await page.evaluate(async () => {
-    const request = indexedDB.open("clinic-magazine", 1);
+    const request = indexedDB.open("clinic-magazine", 2);
     await new Promise((resolve) => {
       request.onsuccess = () => {
         const db = request.result;

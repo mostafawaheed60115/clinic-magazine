@@ -32,8 +32,8 @@
   flex-shrink: 0;
 }
 .logo img {
-  width: 130px;
-  height: 130px;
+  width: 145px;
+  height: 145px;
   object-fit: contain;
   transition:
     transform 0.35s var(--ease),
@@ -801,8 +801,8 @@
     padding-block: 18px 14px;
   }
   .logo img {
-    width: 92px;
-    height: 92px;
+    width: 107px;
+    height: 107px;
   }
   .nav {
     grid-row: 2;
@@ -1051,8 +1051,8 @@
   position: relative;
 }
 .loginPanelLogo {
-  width: 140px;
-  height: 140px;
+  width: 155px;
+  height: 155px;
   object-fit: contain;
   margin-block-end: 20px;
   margin-inline: auto;
@@ -1271,8 +1271,8 @@ html[lang="ar"] .loginPanel h1 {
     padding: 76px 20px 32px;
   }
   .loginPanelLogo {
-    width: 104px;
-    height: 104px;
+    width: 119px;
+    height: 119px;
     margin-block-end: 16px;
   }
   .loginPanel {
@@ -1317,8 +1317,8 @@ html[lang="ar"] .loginPanel h1 {
     padding-inline: 16px;
   }
   .logo img {
-    width: 76px;
-    height: 76px;
+    width: 91px;
+    height: 91px;
   }
   .headerTools {
     gap: 3px;
@@ -1370,8 +1370,8 @@ html[lang="ar"] .loginPanel h1 {
     padding: 30px 18px 34px;
   }
   .loginPanelLogo {
-    width: 90px;
-    height: 90px;
+    width: 105px;
+    height: 105px;
   }
   .loginPanel h1 {
     font-size: 31px;
@@ -2029,8 +2029,8 @@ html[lang="ar"] .loginPanel h1 {
   display: flex;
 }
 .adminHeader .logo img {
-  width: 54px;
-  height: 54px;
+  width: 69px;
+  height: 69px;
 }
 .adminHeader .adminCrumb {
   display: block;
@@ -2055,8 +2055,8 @@ html[lang="ar"] .loginPanel h1 {
     padding-block: 6px;
   }
   .adminHeader .logo img {
-    width: 42px;
-    height: 42px;
+    width: 57px;
+    height: 57px;
   }
 }
 
@@ -2553,5 +2553,181 @@ html[dir="rtl"] .consultationButton {
     overflow: hidden;
     clip: rect(0 0 0 0);
     white-space: nowrap;
+  }
+}
+
+/* Contact shortcuts stay together and clear the phone's safe area. */
+.floatingActions {
+  position: fixed;
+  z-index: var(--z-popover);
+  inset-inline-end: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+.floatingActions > a {
+  pointer-events: auto;
+}
+.floatingActions .consultationButton {
+  position: static;
+  max-width: calc(100vw - 36px);
+}
+.serviceButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 10px 17px;
+  border-radius: 99px;
+  color: var(--primary-deep);
+  background: var(--paper);
+  box-shadow: 0 8px 20px rgb(30 51 40 / 0.2);
+  font-size: 13px;
+  font-weight: 800;
+}
+.serviceButton svg {
+  width: 22px;
+  height: 22px;
+}
+.serviceButton:hover {
+  transform: translateY(-2px);
+}
+.socialLinks {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  direction: ltr;
+}
+.socialLinks a,
+.nav .socialLinks a {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 10px;
+}
+.socialLinks svg {
+  width: 20px;
+  height: 20px;
+}
+.nav .socialLinks {
+  padding-inline-start: 6px;
+  border-inline-start: 1px solid var(--line);
+}
+.footerTop {
+  align-items: flex-start;
+}
+.footerContact {
+  display: grid;
+  gap: 8px;
+  max-width: 36ch;
+}
+.footerContact a,
+.footerContact p {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.6;
+}
+.footerContact svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.footerContact a {
+  color: var(--white);
+  font-size: 13px;
+}
+.footerContact a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.footer .socialLinks a {
+  color: var(--white);
+}
+.footer .socialLinks a:hover {
+  background: rgb(255 255 255 / 0.13);
+}
+@media (max-width: 1100px) {
+  .nav {
+    max-width: min(100%, 630px);
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .nav > a {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+@media (max-width: 680px) {
+  .nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+    max-width: 100%;
+    gap: 4px;
+    overflow: visible;
+    white-space: normal;
+  }
+  .nav > a {
+    justify-content: center;
+    min-height: 48px;
+    padding: 5px 3px;
+    font-size: 11px;
+    line-height: 1.35;
+    text-align: center;
+    white-space: normal;
+  }
+  .nav .socialLinks {
+    grid-column: 1 / -1;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+  }
+  .footerContact {
+    margin-block: 22px;
+  }
+  .footerBottom {
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .floatingActions {
+    inset-inline-end: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .floatingActions .consultationButton,
+  .serviceButton {
+    width: 52px;
+    height: 52px;
+    min-height: 52px;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .floatingActions .consultationButton span,
+  .serviceButton span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+@media (max-width: 360px) {
+  .floatingActions .consultationButton,
+  .serviceButton {
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
   }
 }

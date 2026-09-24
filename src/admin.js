@@ -23,7 +23,11 @@ import {
   importBrandProducts,
   saveConsultationSettings,
 } from "./store.js";
-import { consultationUrl, normalizeWhatsappPhone } from "./consultation.js";
+import {
+  consultationUrl,
+  normalizeWhatsappPhone,
+  normalizeContactPhone,
+} from "./consultation.js";
 import { loadUsers, createUser, updateUser, signOut } from "./auth.js";
 import {
   prepareImage,
@@ -45,11 +49,15 @@ import {
   MAX_IMPORT_PAYLOAD_BYTES,
 } from "./csv.js";
 import a from "./styles/admin.module.css";
+import { adminEventsPage, bindAdminEvents } from "./events.js";
 
 let dirty = false;
 export const isDirty = () => dirty;
 export const markClean = () => {
   dirty = false;
+};
+const setDirty = (value) => {
+  dirty = value;
 };
 export async function mayLeave() {
   if (!dirty) return true;
@@ -75,11 +83,11 @@ const selectField = (key, label, options, value = "", required = true) =>
 function sidebar(route, authState) {
   const nav = [
     ...collections,
-    ...(authState.isAdmin ? ["images", "settings", "users"] : []),
+    ...(authState.isAdmin ? ["events", "images", "settings", "users"] : []),
   ];
   const navigation = (className) =>
-    `<nav class="${className}" aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "users" ? "user" : c === "images" ? "image" : c === "settings" ? "whatsapp" : "grid")}${esc(c === "images" ? t("imageLibrary") : c === "settings" ? t("consultationSettings") : t(labelFor(c)))}</a>`).join("")}</nav>`;
-  return `<aside class="${a.sidebar}"><div class="${a.sidebarBrand}"><span class="${a.sidebarMark}"><img src="/assets/clinic-logo-transparent.png" alt="" width="64" height="64" /></span><div><strong>Clinic</strong><small>${t("admin")}</small></div><details class="${a.mobileNav}"><summary aria-label="${t("adminMenu")}">${icon("grid")}<span>${t("adminMenu")}</span></summary>${navigation(a.mobileNavMenu)}</details></div>${navigation(a.desktopNav)}<div class="${a.sidebarFoot}"><small>${authState.mode === "demo" ? t("localOnly") : t("cloudManaged")}</small>${button(t("signOut"), 'id="app-sign-out"', "ghost")}</div></aside>`;
+    `<nav class="${className}" aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "users" ? "user" : c === "images" ? "image" : c === "settings" ? "phone" : c === "events" ? "calendar" : "grid")}${esc(c === "images" ? t("imageLibrary") : c === "settings" ? t("contactSettings") : t(labelFor(c)))}</a>`).join("")}</nav>`;
+  return `<aside class="${a.sidebar}"><div class="${a.sidebarBrand}"><span class="${a.sidebarMark}"><img src="/assets/clinic-logo-transparent.png" alt="" width="79" height="79" /></span><div><strong>Clinic</strong><small>${t("admin")}</small></div><details class="${a.mobileNav}"><summary aria-label="${t("adminMenu")}">${icon("grid")}<span>${t("adminMenu")}</span></summary>${navigation(a.mobileNavMenu)}</details></div>${navigation(a.desktopNav)}<div class="${a.sidebarFoot}"><small>${authState.mode === "demo" ? t("localOnly") : t("cloudManaged")}</small>${button(t("signOut"), 'id="app-sign-out"', "ghost")}</div></aside>`;
 }
 function overview(data, authState) {
   const reset =
@@ -159,7 +167,9 @@ function editor(data, route, c) {
   }${c === "offers" ? `${field("description_ar", "descriptionAr", item.description_ar, { required: true, dir: "rtl", extra: 'maxlength="300"' })}${field("description_en", "descriptionEn", item.description_en, { required: true, dir: "ltr", extra: 'maxlength="300"' })}` : ""}${imageFields(c, item, imgKey)}</div><p id="form-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}" ${c !== "companies" && !data.companies.length ? "disabled" : ""}>${t("save")}</button><a class="${s.button} ${s.secondary}" href="#/admin/${c}">${t("cancel")}</a></div></form>`;
 }
 function consultationSettingsPage(settings) {
-  return `<div class="${a.head}"><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t("consultationSettings")}</h1><p>${t("consultationSettingsText")}</p></div><form id="consultation-settings-form" class="${a.form} ${a.settingsForm}" novalidate data-revision="${settings.revision}"><div class="${a.field}"><label for="consultation-phone">${t("consultationPhone")}</label><input id="consultation-phone" name="whatsapp_phone" type="tel" dir="ltr" required autocomplete="tel" value="${esc(settings.whatsapp_phone)}" aria-describedby="consultation-phone-help consultation-phone-error" /><small id="consultation-phone-help">${t("consultationPhoneHelp")}</small><span id="consultation-phone-error" class="${s.error}"></span></div><p id="consultation-settings-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}">${t("save")}</button><a class="${s.button} ${s.secondary}" href="${esc(consultationUrl(settings.whatsapp_phone))}" target="_blank" rel="noopener noreferrer">${t("medicalConsultation")}${arrow()}</a></div></form>`;
+  const phoneField = (key, label, required = false) =>
+    `<div class="${a.field}"><label for="${key}">${t(label)}</label><input id="${key}" name="${key}" type="tel" dir="ltr" ${required ? "required" : ""} autocomplete="tel" value="${esc(settings[key] || "")}" aria-describedby="${key}-error" /><span id="${key}-error" class="${s.error}"></span></div>`;
+  return `<div class="${a.head}"><h1 tabindex="-1">${t("contactSettings")}</h1><p>${t("contactSettingsText")}</p></div><form id="consultation-settings-form" class="${a.form} ${a.settingsForm}" novalidate data-revision="${settings.revision}">${phoneField("whatsapp_phone", "consultationPhone", true)}${phoneField("customer_service_phone", "customerServicePhone")}${phoneField("contact_phone", "contactPhone")}<p id="consultation-settings-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}">${t("save")}</button><a class="${s.button} ${s.secondary}" href="${esc(consultationUrl(settings.whatsapp_phone))}" target="_blank" rel="noopener noreferrer">${t("medicalConsultation")}${arrow()}</a></div></form>`;
 }
 function userEditor(users, route) {
   const edit = route.parts[2] === "edit";
@@ -220,25 +230,30 @@ function importErrorMessage(error) {
 }
 export function adminPage(data, route, authState) {
   const c = route.parts[1];
-  if (c && ![...collections, "users", "images", "settings"].includes(c))
+  if (
+    c &&
+    ![...collections, "users", "images", "settings", "events"].includes(c)
+  )
     return notFound();
   const content = !c
     ? overview(data, authState)
-    : c === "settings"
-      ? route.parts[2]
-        ? notFound()
-        : consultationSettingsPage(data.settings)
-      : c === "images"
-        ? imageLibrary()
-        : c === "users"
-          ? route.parts[2]
-            ? userEditor(authState.users || [], route)
-            : `${authState.usersError ? `<p id="admin-error" class="${s.error}" role="alert">${t("userError")} <button type="button" id="retry-users" class="${s.ghost}" onclick="this.dispatchEvent(new Event('clinic-retry-users'))">${t("retry")}</button></p>` : ""}${list(data, route, c, authState.users || [])}`
-          : route.parts[2]
-            ? ["new", "edit"].includes(route.parts[2])
-              ? editor(data, route, c)
-              : notFound()
-            : list(data, route, c);
+    : c === "events"
+      ? adminEventsPage(data, route)
+      : c === "settings"
+        ? route.parts[2]
+          ? notFound()
+          : consultationSettingsPage(data.settings)
+        : c === "images"
+          ? imageLibrary()
+          : c === "users"
+            ? route.parts[2]
+              ? userEditor(authState.users || [], route)
+              : `${authState.usersError ? `<p id="admin-error" class="${s.error}" role="alert">${t("userError")} <button type="button" id="retry-users" class="${s.ghost}" onclick="this.dispatchEvent(new Event('clinic-retry-users'))">${t("retry")}</button></p>` : ""}${list(data, route, c, authState.users || [])}`
+            : route.parts[2]
+              ? ["new", "edit"].includes(route.parts[2])
+                ? editor(data, route, c)
+                : notFound()
+              : list(data, route, c);
   const csvTools =
     c === "companies"
       ? `<input id="brand-import-file" type="file" accept=".csv,text/csv" hidden /><div id="brand-import-preview"></div>`
@@ -621,6 +636,8 @@ function bindBulkUploader(root, signal) {
 export function bindAdmin(root, data, route, context) {
   const { signal, render, navigate, authState } = context;
   if (route.parts[1] === "images") bindBulkUploader(root, signal);
+  if (route.parts[1] === "events")
+    bindAdminEvents(root, signal, render, navigate, setDirty);
   const settingsForm = root.querySelector("#consultation-settings-form");
   if (settingsForm) bindConsultationSettings(root, settingsForm, context);
   if (route.parts[1] === "companies") bindBrandCsv(root, data, signal, render);
@@ -696,25 +713,39 @@ function bindConsultationSettings(root, form, context) {
     async (event) => {
       event.preventDefault();
       if (form.dataset.busy === "true") return;
-      const input = form.elements.whatsapp_phone;
-      const error = root.querySelector("#consultation-phone-error");
       const summary = root.querySelector("#consultation-settings-error");
-      input.removeAttribute("aria-invalid");
-      error.textContent = "";
       summary.textContent = "";
-      const phone = normalizeWhatsappPhone(input.value);
-      if (!phone) {
-        input.setAttribute("aria-invalid", "true");
-        error.textContent = t("invalidPhone");
-        input.focus();
-        return;
+      const phones = {};
+      for (const key of [
+        "whatsapp_phone",
+        "customer_service_phone",
+        "contact_phone",
+      ]) {
+        const input = form.elements[key];
+        const error = root.querySelector(`#${key}-error`);
+        input.removeAttribute("aria-invalid");
+        error.textContent = "";
+        phones[key] = input.value.trim()
+          ? (key === "whatsapp_phone"
+              ? normalizeWhatsappPhone
+              : normalizeContactPhone)(input.value)
+          : null;
+        if (
+          (key === "whatsapp_phone" && !phones[key]) ||
+          (input.value.trim() && !phones[key])
+        ) {
+          input.setAttribute("aria-invalid", "true");
+          error.textContent = t("invalidPhone");
+          input.focus();
+          return;
+        }
       }
       const submit = form.querySelector('[type="submit"]');
       form.dataset.busy = "true";
       submit.disabled = true;
       submit.textContent = t("saving");
       try {
-        await saveConsultationSettings(phone, Number(form.dataset.revision));
+        await saveConsultationSettings(phones, Number(form.dataset.revision));
         dirty = false;
         notify(t("saved"));
         await render({ focus: true });

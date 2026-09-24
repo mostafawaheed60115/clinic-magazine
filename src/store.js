@@ -7,8 +7,13 @@ import {
   deleteCatalogItem,
   importBrandProducts as importBrandProductsRemote,
   saveConsultationSettings as saveConsultationSettingsRemote,
+  saveEvent as saveEventRemote,
+  registerForEvent as registerForEventRemote,
 } from "./cloud.js";
-import { normalizeWhatsappPhone } from "./consultation.js";
+import {
+  normalizeWhatsappPhone,
+  normalizeContactPhone,
+} from "./consultation.js";
 
 export const collections = demoStore.collections;
 export const channel = demoStore.channel;
@@ -94,13 +99,28 @@ export async function saveItem(collection, item, expectedRevision) {
   return saved;
 }
 
-export async function saveConsultationSettings(phone, expectedRevision) {
+export async function saveConsultationSettings(settings, expectedRevision) {
   await requireSession();
-  const normalized = normalizeWhatsappPhone(phone);
-  if (!normalized) {
-    const error = new Error("Invalid WhatsApp phone number");
-    error.code = "invalid_phone";
-    throw error;
+  const normalized = {};
+  for (const key of [
+    "whatsapp_phone",
+    "customer_service_phone",
+    "contact_phone",
+  ]) {
+    normalized[key] = settings[key]
+      ? (key === "whatsapp_phone"
+          ? normalizeWhatsappPhone
+          : normalizeContactPhone)(settings[key])
+      : null;
+    if (
+      key === "whatsapp_phone"
+        ? !normalized[key]
+        : settings[key] && !normalized[key]
+    ) {
+      const error = new Error("Invalid phone number");
+      error.code = "invalid_phone";
+      throw error;
+    }
   }
   if (!isDemoMode() && !hasCloudConfig()) throw unconfigured();
   const saved = isDemoMode()
@@ -109,6 +129,34 @@ export async function saveConsultationSettings(phone, expectedRevision) {
   invalidateCatalogCache();
   if (!isDemoMode()) channel?.postMessage("updated");
   return saved;
+}
+
+export async function saveEvent(event, expectedRevision = 0) {
+  await requireSession();
+  const saved = isDemoMode()
+    ? await demoStore.saveEvent(event, expectedRevision)
+    : await saveEventRemote(event, expectedRevision);
+  invalidateCatalogCache();
+  channel?.postMessage("updated");
+  return saved;
+}
+
+export async function registerForEvent(eventId, name, phone) {
+  await requireSession();
+  const state = getAuthState();
+  const userId = state.user?.id;
+  if (!userId) throw new Error("A signed-in account is required");
+  if (isDemoMode())
+    await demoStore.registerForEvent(
+      eventId,
+      userId,
+      state.profile?.username,
+      name,
+      phone,
+    );
+  else await registerForEventRemote(eventId, userId, name, phone);
+  invalidateCatalogCache();
+  channel?.postMessage("updated");
 }
 
 export async function deleteItem(collection, id, revision) {

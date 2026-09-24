@@ -128,8 +128,8 @@
   min-width: 0;
 }
 .adminAuthBrand img {
-  width: 72px;
-  height: 72px;
+  width: 87px;
+  height: 87px;
   flex: 0 0 auto;
   object-fit: contain;
   padding: 5px;
@@ -608,8 +608,8 @@
 }
 .sidebarMark {
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 53px;
+  height: 53px;
   place-items: center;
   border-radius: 12px;
   background: var(--brand-gradient);

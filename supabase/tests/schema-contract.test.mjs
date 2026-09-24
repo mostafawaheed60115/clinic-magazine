@@ -19,6 +19,13 @@ const consultationMigration = await readFile(
   ),
   "utf8",
 );
+const eventsMigration = await readFile(
+  new URL(
+    "../migrations/20260924170925_clinic_events_contact.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 for (const table of ["users", "admin", "companies", "products", "offers"]) {
   assert.match(
@@ -80,5 +87,19 @@ assert.match(
   consultationMigration,
   /grant select, update on table public\.app_settings to authenticated/,
 );
+for (const table of ["events", "event_participants"]) {
+  assert.match(
+    eventsMigration,
+    new RegExp(`create table public\\.${table}\\b`),
+  );
+  assert.match(
+    eventsMigration,
+    new RegExp(`alter table public\\.${table} enable row level security`),
+  );
+}
+assert.match(eventsMigration, /primary key \(event_id, user_id\)/);
+assert.match(eventsMigration, /user_id = \(select auth\.uid\(\)\)/);
+assert.match(eventsMigration, /private\.is_active_member\(\)/);
+assert.match(eventsMigration, /event_participants_insert/);
 
 console.log("Clinic Supabase schema contract passed");

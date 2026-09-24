@@ -4,6 +4,8 @@ The migration creates Auth-linked `public.users` and `public.admin` membership t
 
 The catalog Data API is closed to `anon`. An active `public.users` row can read the catalog; only a current active `public.admin` row can insert, update, or delete catalog records. Authorization helpers run as `SECURITY DEFINER` in the unexposed `private` schema with an explicit `search_path`, and they query current membership rows rather than JWT metadata. Every mutable row has a `revision`; update requests should include `.eq('revision', expectedRevision)` and set `revision` to `expectedRevision + 1`.
 
+The `clinic_events_contact` migration adds optional customer service and footer phone numbers to `app_settings`, plus `events` and `event_participants`. Active members can see events and register once per event during its date window. The registration stores the submitted name and phone with the account ID; a trigger copies the username from the account. Members can read only their own registrations, while admins can see the full participant list and manage events. The date window uses the Africa/Cairo calendar day.
+
 ## Edge function contracts
 
 `clinic-admin-users` requires a real Supabase JWT in `Authorization: Bearer ...` and an active admin membership. JSON requests use one of these actions:

@@ -30,6 +30,16 @@ const paths = {
   image: "M4 5h16v14H4zM4 16l4-4 3 3 2-2 7 5M15 9h.01",
   whatsapp:
     "M20.4 11.5a8.4 8.4 0 0 1-12.2 7.4L3 20l1.2-5.1a8.4 8.4 0 1 1 16.2-3.4ZM8.3 7.8c-.3.2-.6.9-.5 1.4.2 1.6 2.7 4.6 4.8 5.5 1.1.5 2 .4 2.6 0l.7-1.1-2.1-1.1-.9 1c-1.5-.7-2.5-1.7-3.2-3.2l.9-.9-1-2.1-1.3.5Z",
+  phone:
+    "M6.6 3.3 4 5.9c-.6.6-.7 1.5-.4 2.3a20 20 0 0 0 12.2 12.2c.8.3 1.7.2 2.3-.4l2.6-2.6-4.5-4.5-2.3 2.3a16.8 16.8 0 0 1-6.9-6.9l2.3-2.3-4.5-4.5Z",
+  facebook:
+    "M14.5 21v-8h2.7l.4-3.2h-3.1V7.7c0-.9.3-1.5 1.6-1.5H18V3.3c-.4-.1-1.5-.3-2.8-.3-2.8 0-4.7 1.7-4.7 4.8v2H8V13h2.5v8",
+  instagram:
+    "M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Zm5 5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm5.6-1h.01",
+  tiktok:
+    "M14 3v11.2a4.2 4.2 0 1 1-4.2-4.2M14 3c.5 3.1 2.4 5 5.5 5.2v3.2c-2.1 0-4-.7-5.5-2",
+  map: "M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0ZM12 10a2.5 2.5 0 1 0 0 .01Z",
+  calendar: "M4 5h16v16H4zM4 9h16M8 3v4m8-4v4",
 };
 export function icon(name, extra = "") {
   return `<svg class="${s.icon} ${extra}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.arrow}"/></svg>`;

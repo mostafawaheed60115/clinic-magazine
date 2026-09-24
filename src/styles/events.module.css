@@ -1,0 +1,193 @@
+.page,
+.adminPage {
+  padding-block: clamp(28px, 5vw, 64px) 80px;
+}
+.heading {
+  max-width: 720px;
+  margin-bottom: 30px;
+}
+.heading h1 {
+  color: var(--primary-deep);
+  font-size: clamp(32px, 5vw, 54px);
+  line-height: 1.25;
+}
+.heading p,
+.description {
+  color: var(--muted);
+  line-height: 1.8;
+}
+.list,
+.adminList {
+  display: grid;
+  gap: 20px;
+}
+.card,
+.adminForm,
+.adminEvent,
+.empty {
+  padding: clamp(22px, 3vw, 36px);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: var(--elevation-1);
+}
+.cardHead,
+.actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.card h2,
+.adminForm h2,
+.adminEvent h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(21px, 2.5vw, 29px);
+  line-height: 1.4;
+}
+.status,
+.registered {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: var(--primary-deep);
+  background: var(--blush);
+  font-size: 13px;
+  font-weight: 700;
+}
+.status[data-state="eventClosed"] {
+  color: var(--muted);
+  background: var(--surface-tint);
+}
+.status[data-state="eventUpcoming"] {
+  color: var(--rose);
+}
+.description {
+  max-width: 72ch;
+  margin-block: 14px;
+  white-space: pre-line;
+}
+.dates,
+.registered {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dates {
+  color: var(--muted);
+  font-size: 14px;
+}
+.dates svg,
+.registered svg {
+  width: 19px;
+  height: 19px;
+}
+.registerForm,
+.adminForm {
+  display: grid;
+  gap: 16px;
+}
+.registerForm {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.registerForm > p:first-child {
+  margin: 0;
+  color: var(--muted);
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.registerForm label,
+.adminForm label {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+}
+.registerForm input,
+.adminForm input,
+.adminForm textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+.registerForm input:focus-visible,
+.adminForm input:focus-visible,
+.adminForm textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.registerForm button {
+  justify-self: start;
+}
+.formError {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--danger);
+}
+.formError:empty {
+  display: none;
+}
+.registered {
+  width: fit-content;
+  margin-top: 24px;
+}
+.adminForm {
+  margin-bottom: 32px;
+}
+.adminForm textarea {
+  resize: vertical;
+}
+.adminEvent p {
+  margin: 5px 0;
+  color: var(--muted);
+}
+.adminEvent details {
+  margin-top: 18px;
+}
+.adminEvent summary {
+  min-height: 44px;
+  padding-block: 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.participantScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.participantScroll table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: start;
+}
+.participantScroll th,
+.participantScroll td {
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: start;
+}
+@media (max-width: 680px) {
+  .cardHead {
+    flex-wrap: wrap;
+  }
+  .fields {
+    grid-template-columns: 1fr;
+  }
+  .registerForm button {
+    width: 100%;
+    justify-content: center;
+  }
+  .adminEvent .cardHead a {
+    width: 100%;
+    justify-content: center;
+  }
+}

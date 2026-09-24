@@ -25,11 +25,19 @@ const finished = (transaction) =>
 
 export async function openStore() {
   if (db) return db;
-  const request = indexedDB.open("clinic-magazine", 1);
+  const request = indexedDB.open("clinic-magazine", 2);
   request.onupgradeneeded = () => {
     for (const collection of collections)
-      request.result.createObjectStore(collection, { keyPath: "id" });
-    request.result.createObjectStore("meta", { keyPath: "id" });
+      if (!request.result.objectStoreNames.contains(collection))
+        request.result.createObjectStore(collection, { keyPath: "id" });
+    if (!request.result.objectStoreNames.contains("meta"))
+      request.result.createObjectStore("meta", { keyPath: "id" });
+    if (!request.result.objectStoreNames.contains("events"))
+      request.result.createObjectStore("events", { keyPath: "id" });
+    if (!request.result.objectStoreNames.contains("event_participants"))
+      request.result.createObjectStore("event_participants", {
+        keyPath: ["event_id", "user_id"],
+      });
   };
   db = await new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -56,23 +64,34 @@ export async function openStore() {
 
 export async function readAll() {
   await openStore();
-  const tx = db.transaction([...collections, "meta"], "readonly");
+  const tx = db.transaction(
+    [...collections, "meta", "events", "event_participants"],
+    "readonly",
+  );
   const settingsRead = result(tx.objectStore("meta").get("settings"));
+  const eventsRead = result(tx.objectStore("events").getAll());
+  const participantsRead = result(
+    tx.objectStore("event_participants").getAll(),
+  );
   const values = await Promise.all(
     collections.map((collection) =>
       result(tx.objectStore(collection).getAll()),
     ),
   );
   const settings = await settingsRead;
+  const events = await eventsRead;
+  const eventParticipants = await participantsRead;
   return {
     ...Object.fromEntries(
       collections.map((collection, i) => [collection, values[i]]),
     ),
-    settings: settings?.value || DEFAULT_CONSULTATION_SETTINGS,
+    settings: { ...DEFAULT_CONSULTATION_SETTINGS, ...settings?.value },
+    events,
+    event_participants: eventParticipants,
   };
 }
 
-export async function saveConsultationSettings(phone, expectedRevision) {
+export async function saveConsultationSettings(values, expectedRevision) {
   await openStore();
   const tx = db.transaction("meta", "readwrite");
   const done = finished(tx);
@@ -89,13 +108,69 @@ export async function saveConsultationSettings(phone, expectedRevision) {
   }
   const settings = {
     ...current,
-    whatsapp_phone: phone,
+    ...values,
     revision: expectedRevision + 1,
   };
   store.put({ id: "settings", value: settings });
   await done;
   channel?.postMessage("updated");
   return settings;
+}
+
+export async function saveEvent(event, expectedRevision = 0) {
+  await openStore();
+  const tx = db.transaction("events", "readwrite");
+  const done = finished(tx);
+  const store = tx.objectStore("events");
+  const current = event.id ? await result(store.get(event.id)) : null;
+  if ((current?.revision || 0) !== expectedRevision) {
+    tx.abort();
+    await done.catch(() => {});
+    const error = new Error("conflict");
+    error.code = "conflict";
+    throw error;
+  }
+  const saved = {
+    ...event,
+    id: event.id || crypto.randomUUID(),
+    revision: expectedRevision + 1,
+  };
+  store.put(saved);
+  await done;
+  return saved;
+}
+
+export async function registerForEvent(eventId, userId, username, name, phone) {
+  await openStore();
+  const tx = db.transaction(["events", "event_participants"], "readwrite");
+  const done = finished(tx);
+  const event = await result(tx.objectStore("events").get(eventId));
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Cairo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  if (!event || today < event.start_date || today > event.end_date) {
+    tx.abort();
+    await done.catch(() => {});
+    throw new Error("event_closed");
+  }
+  const participants = tx.objectStore("event_participants");
+  if (await result(participants.get([eventId, userId]))) {
+    tx.abort();
+    await done.catch(() => {});
+    throw new Error("already_registered");
+  }
+  participants.put({
+    event_id: eventId,
+    user_id: userId,
+    username,
+    name,
+    phone,
+    registered_at: new Date().toISOString(),
+  });
+  await done;
 }
 
 export async function saveItem(collection, item, expectedRevision) {
@@ -149,7 +224,10 @@ export async function deleteItem(collection, id, revision) {
 
 export async function resetStore() {
   await openStore();
-  const tx = db.transaction([...collections, "meta"], "readwrite");
+  const tx = db.transaction(
+    [...collections, "meta", "events", "event_participants"],
+    "readwrite",
+  );
   const done = finished(tx);
   const seed = seedData();
   for (const collection of collections) {
@@ -158,6 +236,8 @@ export async function resetStore() {
     for (const item of seed[collection])
       tx.objectStore(collection).put({ ...item, revision: Date.now() });
   }
+  tx.objectStore("events").clear();
+  tx.objectStore("event_participants").clear();
   tx.objectStore("meta").put({
     id: "settings",
     value: { ...DEFAULT_CONSULTATION_SETTINGS, revision: Date.now() },

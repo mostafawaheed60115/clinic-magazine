@@ -30,9 +30,12 @@ The entry screen requires a username and password. Supabase Auth stores password
 
 - `#/offers`: manually controlled, swipeable offer cover.
 - `#/brands`: searchable company directory with pagination.
+- `#/events`: current and upcoming event registration for signed-in buyers.
 - `#/brand/<id>`: company products, sizes, pack quantities, discounts and authoritative EGP final prices.
 - Product links: shareable catalog detail and an optional external HTTPS product link.
 - `#/admin`: companies, products, offers and user access management.
+- `#/admin/events`: create or edit events and review participants.
+- `#/admin/settings`: configure WhatsApp, customer service, and footer contact numbers.
 
 Search and pagination are kept in route parameters. The catalog supports Arabic and English, keyboard controls and reduced-motion preferences. No crossed-out price is invented from a discount.
 
