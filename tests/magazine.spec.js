@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { readFile } from "node:fs/promises";
 import { messages } from "../src/i18n.js";
 
 async function english(page) {
@@ -38,6 +39,40 @@ test("localization dictionaries have complete parity", () => {
   expect(Object.keys(messages.ar).sort()).toEqual(
     Object.keys(messages.en).sort(),
   );
+});
+
+test("product CSV download retains Arabic and damaged uploads stop before preview", async ({
+  page,
+}) => {
+  await english(page);
+  await login(page);
+  await page.goto("/#/admin/companies?q=LUMA");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.locator('[data-export-brand="luma"]').click(),
+  ]);
+  const bytes = await readFile(await download.path());
+  expect([...bytes.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
+  const csv = bytes.toString("utf8");
+  expect(csv).toContain("سيروم مرطّب");
+  expect(csv).not.toContain("schema_version");
+  expect(csv).not.toContain("brand_name_en");
+
+  const [chooser] = await Promise.all([
+    page.waitForEvent("filechooser"),
+    page.locator('[data-import-brand="luma"]').click(),
+  ]);
+  await chooser.setFiles({
+    name: "damaged-products.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(
+      "name_en\tname_ar\tfinal_price\r\ntest unit\t???? ????\t800\r\n",
+    ),
+  });
+  await expect(
+    page.locator('#brand-import-preview [role="alert"]'),
+  ).toContainText("already question marks");
+  await expect(page.locator("#apply-brand-import")).toHaveCount(0);
 });
 
 test("admin creates an event and a signed-in buyer registers once", async ({

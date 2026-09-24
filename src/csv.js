@@ -1,11 +1,6 @@
 const BOM = "\uFEFF";
 
 export const PRODUCT_CSV_COLUMNS = [
-  "schema_version",
-  "brand_id",
-  "brand_name_en",
-  "product_id",
-  "revision",
   "name_en",
   "name_ar",
   "size_value",
@@ -15,6 +10,9 @@ export const PRODUCT_CSV_COLUMNS = [
   "final_price",
   "product_url",
   "image_url",
+  "brand_id",
+  "product_id",
+  "revision",
 ];
 
 export const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
@@ -183,13 +181,14 @@ function unescapeCell(value) {
   return /^'[=+\-@]/.test(value) ? value.slice(1) : value;
 }
 
+// A legacy spreadsheet save can replace Arabic letters with literal '?' bytes.
+// Reject the damaged value before a preview can write it back to the catalog.
+export function hasCorruptArabic(value) {
+  return /^\?{2,}$/.test(String(value || "").replace(/\s/g, ""));
+}
+
 export function productExportRows(brand, products) {
   return products.map((product) => ({
-    schema_version: "1",
-    brand_id: brand.id,
-    brand_name_en: brand.name_en,
-    product_id: product.id,
-    revision: product.revision,
     name_en: product.name_en,
     name_ar: product.name_ar,
     size_value: product.size_value,
@@ -199,17 +198,15 @@ export function productExportRows(brand, products) {
     final_price: product.final_price,
     product_url: product.product_url,
     image_url: product.img_url,
+    brand_id: brand.id,
+    product_id: product.id,
+    revision: product.revision,
   }));
 }
 
 export function productTemplateRows(brand) {
   return [
     {
-      schema_version: "1",
-      brand_id: brand.id,
-      brand_name_en: brand.name_en,
-      product_id: "",
-      revision: "",
       name_en: "",
       name_ar: "",
       size_value: "",
@@ -219,16 +216,20 @@ export function productTemplateRows(brand) {
       final_price: "",
       product_url: "",
       image_url: "",
+      brand_id: brand.id,
+      product_id: "",
+      revision: "",
     },
   ];
 }
 
 export function importRows(rows, brand) {
-  return rows.map((row) => {
+  return rows.map((row, index) => {
+    if (hasCorruptArabic(row.name_ar))
+      throw csvError("csv_arabic_corrupt", index + 2);
     const imported = {
       ...row,
       brand_id: row.brand_id?.trim() || brand.id,
-      brand_name_en: row.brand_name_en?.trim() || brand.name_en,
     };
     for (const column of NUMERIC_COLUMNS) {
       if (imported[column] != null && imported[column] !== "")

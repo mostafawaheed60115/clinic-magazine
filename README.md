@@ -45,6 +45,8 @@ Companies support phone, an optional parent company, and `logo_url`. Products us
 
 Admin image selection creates a preview and converts raster images to WebP in the browser. Saving uploads the WebP directly to the Supabase Storage `clinic-images` bucket through the authenticated Supabase client; Storage RLS allows writes only for active administrators. The resulting public object URL is saved in Supabase. Uploads cannot complete until the bucket migration is applied; a failure keeps the editor available for correction.
 
+Product CSV downloads include a UTF-8 BOM for spreadsheet compatibility. When editing in Excel, save as **CSV UTF-8**; a legacy CSV or tab-delimited save can replace Arabic letters with literal question marks. Import accepts UTF-8, UTF-16 and Arabic Windows-1256 files, and rejects Arabic names already reduced to question marks before applying any rows. The export keeps `brand_id`, `product_id` and `revision` to validate the selected brand and update existing products safely; the unused schema version and brand name columns are omitted. Text already stored as question marks must be corrected from an original source.
+
 See [backend setup](supabase/README.md) for migrations, account provisioning, Storage policies and Edge Functions used for user management. The original supplied palette and logo assets are preserved. Refined SVGs and the supplied PNG logo are in `public/assets`. Preview brands, products, prices and offer artwork are explicitly illustrative and are not automatically inserted into the live database.
 
 See [UI-UX-AUDIT.md](UI-UX-AUDIT.md) for the sizing, spacing, component, responsive, and accessibility review with captured desktop and mobile evidence.

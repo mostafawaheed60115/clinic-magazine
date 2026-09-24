@@ -24,7 +24,14 @@ test("CSV exports round-trip safely and preserve blank override fields", () => {
       img_url: "https://example.com/image.webp",
     },
   ]);
-  const parsed = parseCsv(serializeCsv(rows));
+  const csv = serializeCsv(rows);
+  expect([...new TextEncoder().encode(csv).slice(0, 3)]).toEqual([
+    0xef, 0xbb, 0xbf,
+  ]);
+  expect(csv.split("\r\n", 1)[0]).toBe(
+    "\uFEFFname_en,name_ar,size_value,size_unit,qty,discount,final_price,product_url,image_url,brand_id,product_id,revision",
+  );
+  const parsed = parseCsv(csv);
   const imported = importRows(parsed, brand)[0];
   expect(imported).toMatchObject({
     brand_id: "brand-1",
@@ -34,6 +41,28 @@ test("CSV exports round-trip safely and preserve blank override fields", () => {
     discount: "",
     product_url: "",
     image_url: "https://example.com/image.webp",
+  });
+});
+
+test("CSV import stops when Arabic was already replaced by question marks", () => {
+  const text = "name_en\tname_ar\tfinal_price\r\ntest unit\t???? ????\t800\r\n";
+  expect(() => importRows(parseCsv(text), { id: "brand-1" })).toThrow(
+    expect.objectContaining({ code: "csv_arabic_corrupt", row: 2 }),
+  );
+});
+
+test("older exports with version and brand-name columns remain importable", () => {
+  const text =
+    "schema_version,brand_id,brand_name_en,product_id,revision,name_en,name_ar,final_price\r\n1,brand-1,Test brand,product-1,3,Cream,كريم,120\r\n";
+  const [row] = importRows(parseCsv(text), {
+    id: "brand-1",
+    name_en: "Test brand",
+  });
+  expect(row).toMatchObject({
+    brand_id: "brand-1",
+    product_id: "product-1",
+    revision: "3",
+    name_ar: "كريم",
   });
 });
 

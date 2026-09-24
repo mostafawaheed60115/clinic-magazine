@@ -47,6 +47,7 @@ import {
   MAX_IMPORT_FILE_BYTES,
   MAX_IMPORT_ROWS,
   MAX_IMPORT_PAYLOAD_BYTES,
+  hasCorruptArabic,
 } from "./csv.js";
 import a from "./styles/admin.module.css";
 import { adminEventsPage, bindAdminEvents } from "./events.js";
@@ -224,8 +225,11 @@ function importErrorMessage(error) {
     csv_missing_columns: "csvMissingColumnsError",
     csv_extra_fields: "csvExtraFieldsError",
     csv_unfinished_quote: "csvUnfinishedQuoteError",
+    csv_arabic_corrupt: "csvArabicCorruptError",
   };
   const key = messages[error?.code];
+  if (key && error?.row)
+    return `${t("importRows")} ${number(error.row)}: ${t(key)}`;
   return key ? t(key) : error?.message || t("importFailed");
 }
 export function adminPage(data, route, authState) {
@@ -317,7 +321,13 @@ function bindBrandCsv(root, data, signal, render) {
           `${fileName(brand.name_en)}-products.csv`,
           productExportRows(brand, products),
         );
-        notify(t("saved"));
+        notify(
+          t(
+            products.some((product) => hasCorruptArabic(product.name_ar))
+              ? "csvSourceCorrupt"
+              : "csvExportReady",
+          ),
+        );
       },
       { signal },
     ),
@@ -334,6 +344,7 @@ function bindBrandCsv(root, data, signal, render) {
           `${fileName(brand.name_en)}-products-template.csv`,
           productTemplateRows(brand),
         );
+        notify(t("csvExportReady"));
       },
       { signal },
     ),

@@ -200,7 +200,8 @@ const ar = {
   localOnly: "التغييرات محفوظة في هذا المتصفح فقط.",
   cloudManaged: "المحتوى محفوظ في حساب Clinic.",
   manageText: "حدّث محتوى المجلة من مكان واحد.",
-  brandToolsHint: "صدّر منتجات العلامة أو استورد تعديلاتك دفعة واحدة.",
+  brandToolsHint:
+    "عدّل الملف في Excel واحفظه بصيغة CSV UTF-8 للحفاظ على الحروف العربية.",
   total: "الإجمالي",
   chooseBrand: "اختر علامة تجارية",
   noBrands: "أضف علامة تجارية أولًا.",
@@ -263,6 +264,11 @@ const ar = {
     "أعمدة الاستيراد المطلوبة غير مكتملة. استخدم قالب Clinic دون تغيير أسماء الأعمدة.",
   csvExtraFieldsError: "أحد الصفوف يحتوي على حقول أكثر من عناوين الأعمدة.",
   csvUnfinishedQuoteError: "يوجد اقتباس غير مكتمل في أحد حقول CSV.",
+  csvArabicCorruptError:
+    "الاسم العربي داخل الملف تحوّل إلى علامات استفهام. أصلحه من المصدر واحفظ الملف بصيغة CSV UTF-8 قبل الاستيراد.",
+  csvSourceCorrupt:
+    "بعض الأسماء العربية محفوظة كعلامات استفهام في الكتالوج. أصلحها قبل إعادة الاستيراد؛ التصدير لا يستعيدها.",
+  csvExportReady: "تم تنزيل الملف. عند التعديل في Excel احفظه بصيغة CSV UTF-8.",
   importDemoUnavailable: "استيراد CSV متاح للحساب المتصل فقط.",
   importRows: "صفوف",
   importCreated: "جديد",
@@ -481,7 +487,8 @@ const en = {
   localOnly: "Changes are saved in this browser only.",
   cloudManaged: "Content is saved to the Clinic account.",
   manageText: "Keep your magazine up to date, all in one place.",
-  brandToolsHint: "Export a brand's products or import your bulk edits.",
+  brandToolsHint:
+    "Edit in Excel, then save as CSV UTF-8 to preserve Arabic text.",
   total: "Total",
   chooseBrand: "Choose a brand",
   noBrands: "Add a brand first.",
@@ -545,6 +552,11 @@ const en = {
     "Required import columns are missing. Use the Clinic template without renaming columns.",
   csvExtraFieldsError: "A CSV row contains more fields than the header.",
   csvUnfinishedQuoteError: "A quoted CSV field is not closed.",
+  csvArabicCorruptError:
+    "The Arabic name is already question marks in this file. Restore it from the source, then save as CSV UTF-8 before importing.",
+  csvSourceCorrupt:
+    "Some Arabic names are already question marks in the catalog. Correct them before re-importing; export cannot restore them.",
+  csvExportReady: "CSV downloaded. In Excel, save edits as CSV UTF-8.",
   importDemoUnavailable:
     "CSV import is available for the connected Clinic account only.",
   importRows: "rows",
