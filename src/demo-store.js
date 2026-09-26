@@ -25,7 +25,7 @@ const finished = (transaction) =>
 
 export async function openStore() {
   if (db) return db;
-  const request = indexedDB.open("clinic-magazine", 2);
+  const request = indexedDB.open("clinic-magazine", 3);
   request.onupgradeneeded = () => {
     for (const collection of collections)
       if (!request.result.objectStoreNames.contains(collection))
@@ -38,6 +38,10 @@ export async function openStore() {
       request.result.createObjectStore("event_participants", {
         keyPath: ["event_id", "user_id"],
       });
+    if (!request.result.objectStoreNames.contains("event_surveys"))
+      request.result.createObjectStore("event_surveys", { keyPath: "id" });
+    if (!request.result.objectStoreNames.contains("event_requests"))
+      request.result.createObjectStore("event_requests", { keyPath: "id" });
   };
   db = await new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -62,32 +66,37 @@ export async function openStore() {
   return db;
 }
 
-export async function readAll() {
+export async function readAll({
+  includeEvents = false,
+  includeEventRequests = false,
+} = {}) {
   await openStore();
-  const tx = db.transaction(
-    [...collections, "meta", "events", "event_participants"],
-    "readonly",
-  );
+  const stores = [...collections, "meta"];
+  if (includeEvents) stores.push("event_surveys");
+  if (includeEventRequests) stores.push("event_requests");
+  const tx = db.transaction(stores, "readonly");
   const settingsRead = result(tx.objectStore("meta").get("settings"));
-  const eventsRead = result(tx.objectStore("events").getAll());
-  const participantsRead = result(
-    tx.objectStore("event_participants").getAll(),
-  );
+  const surveysRead = includeEvents
+    ? result(tx.objectStore("event_surveys").getAll())
+    : Promise.resolve([]);
+  const requestsRead = includeEventRequests
+    ? result(tx.objectStore("event_requests").getAll())
+    : Promise.resolve([]);
   const values = await Promise.all(
     collections.map((collection) =>
       result(tx.objectStore(collection).getAll()),
     ),
   );
   const settings = await settingsRead;
-  const events = await eventsRead;
-  const eventParticipants = await participantsRead;
+  const eventSurveys = await surveysRead;
+  const eventRequests = await requestsRead;
   return {
     ...Object.fromEntries(
       collections.map((collection, i) => [collection, values[i]]),
     ),
     settings: { ...DEFAULT_CONSULTATION_SETTINGS, ...settings?.value },
-    events,
-    event_participants: eventParticipants,
+    event_surveys: eventSurveys,
+    event_requests: eventRequests,
   };
 }
 
@@ -117,12 +126,12 @@ export async function saveConsultationSettings(values, expectedRevision) {
   return settings;
 }
 
-export async function saveEvent(event, expectedRevision = 0) {
+export async function saveEventSurvey(survey, expectedRevision = 0) {
   await openStore();
-  const tx = db.transaction("events", "readwrite");
+  const tx = db.transaction("event_surveys", "readwrite");
   const done = finished(tx);
-  const store = tx.objectStore("events");
-  const current = event.id ? await result(store.get(event.id)) : null;
+  const store = tx.objectStore("event_surveys");
+  const current = survey.id ? await result(store.get(survey.id)) : null;
   if ((current?.revision || 0) !== expectedRevision) {
     tx.abort();
     await done.catch(() => {});
@@ -130,9 +139,19 @@ export async function saveEvent(event, expectedRevision = 0) {
     error.code = "conflict";
     throw error;
   }
+  if (!survey.id) {
+    const active = (await result(store.getAll())).some((item) => item.is_open);
+    if (active) {
+      tx.abort();
+      await done.catch(() => {});
+      throw new Error("survey_already_open");
+    }
+  }
   const saved = {
-    ...event,
-    id: event.id || crypto.randomUUID(),
+    id: survey.id || crypto.randomUUID(),
+    is_open: Boolean(survey.is_open),
+    started_at: current?.started_at || new Date().toISOString(),
+    ended_at: survey.is_open ? null : new Date().toISOString(),
     revision: expectedRevision + 1,
   };
   store.put(saved);
@@ -140,35 +159,39 @@ export async function saveEvent(event, expectedRevision = 0) {
   return saved;
 }
 
-export async function registerForEvent(eventId, userId, username, name, phone) {
+export async function submitEventRequest(request, userId) {
   await openStore();
-  const tx = db.transaction(["events", "event_participants"], "readwrite");
+  const tx = db.transaction(
+    ["event_surveys", "event_requests", "companies"],
+    "readwrite",
+  );
   const done = finished(tx);
-  const event = await result(tx.objectStore("events").get(eventId));
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Cairo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  if (!event || today < event.start_date || today > event.end_date) {
+  const survey = await result(
+    tx.objectStore("event_surveys").get(request.survey_id),
+  );
+  if (!survey?.is_open) {
     tx.abort();
     await done.catch(() => {});
     throw new Error("event_closed");
   }
-  const participants = tx.objectStore("event_participants");
-  if (await result(participants.get([eventId, userId]))) {
+  const brands = await result(tx.objectStore("companies").getAll());
+  const selected = new Set(request.company_ids);
+  const chosenBrands = brands.filter((brand) => selected.has(brand.id));
+  if (chosenBrands.length !== selected.size) {
     tx.abort();
     await done.catch(() => {});
-    throw new Error("already_registered");
+    throw new Error("invalid_company");
   }
-  participants.put({
-    event_id: eventId,
+  tx.objectStore("event_requests").put({
+    ...request,
+    id: crypto.randomUUID(),
     user_id: userId,
-    username,
-    name,
-    phone,
-    registered_at: new Date().toISOString(),
+    company_names: chosenBrands.map((brand) => ({
+      id: brand.id,
+      name_ar: brand.name_ar,
+      name_en: brand.name_en,
+    })),
+    submitted_at: new Date().toISOString(),
   });
   await done;
 }
@@ -225,7 +248,14 @@ export async function deleteItem(collection, id, revision) {
 export async function resetStore() {
   await openStore();
   const tx = db.transaction(
-    [...collections, "meta", "events", "event_participants"],
+    [
+      ...collections,
+      "meta",
+      "events",
+      "event_participants",
+      "event_surveys",
+      "event_requests",
+    ],
     "readwrite",
   );
   const done = finished(tx);
@@ -238,6 +268,8 @@ export async function resetStore() {
   }
   tx.objectStore("events").clear();
   tx.objectStore("event_participants").clear();
+  tx.objectStore("event_surveys").clear();
+  tx.objectStore("event_requests").clear();
   tx.objectStore("meta").put({
     id: "settings",
     value: { ...DEFAULT_CONSULTATION_SETTINGS, revision: Date.now() },

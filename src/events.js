@@ -1,24 +1,24 @@
-import { t, locale } from "./i18n.js";
-import { esc, icon, notify, s } from "./ui.js";
-import { registerForEvent, saveEvent } from "./store.js";
+import { t, locale, nameOf, number } from "./i18n.js";
+import { esc, icon, notify, ask, s } from "./ui.js";
+import { submitEventRequest, saveEventSurvey } from "./store.js";
+import { normalizeContactPhone } from "./consultation.js";
 import e from "./styles/events.module.css";
 
-const cairoToday = () =>
-  new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Cairo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-
-const eventStatus = (event) => {
-  const today = cairoToday();
-  return today < event.start_date
-    ? "eventUpcoming"
-    : today > event.end_date
-      ? "eventClosed"
-      : "eventOpen";
-};
+const activityKeys = [
+  "eventActivityWheel",
+  "eventActivityScratch",
+  "eventActivityAnalysis",
+  "eventActivityTraining",
+];
+const activityValues = [
+  "wheel",
+  "scratch_cards",
+  "analysis_discount",
+  "pharmacist_training",
+];
+const activityLabels = Object.fromEntries(
+  activityValues.map((value, index) => [value, activityKeys[index]]),
+);
 
 const displayDate = (date) =>
   new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", {
@@ -28,119 +28,210 @@ const displayDate = (date) =>
     timeZone: "UTC",
   }).format(new Date(`${date}T12:00:00Z`));
 
-export function eventsPage(data, authState) {
-  const userId = authState.user?.id;
-  const profile = authState.profile || {};
-  const cards = data.events
-    .map((event) => {
-      const status = eventStatus(event);
-      const registered = data.event_participants.some(
-        (item) => item.event_id === event.id && item.user_id === userId,
-      );
-      return `<article class="${e.card}"><div class="${e.cardHead}"><h2>${esc(event.name)}</h2><span class="${e.status}" data-state="${status}">${t(status)}</span></div><p class="${e.description}">${esc(event.description)}</p><p class="${e.dates}">${icon("calendar")}<time datetime="${event.start_date}">${displayDate(event.start_date)}</time><span aria-hidden="true">—</span><time datetime="${event.end_date}">${displayDate(event.end_date)}</time></p>${registered ? `<p class="${e.registered}">${icon("check")}${t("eventRegistered")}</p>` : status === "eventOpen" ? `<form class="${e.registerForm}" data-event-id="${event.id}" novalidate><p>${t("eventFormHelp")}</p><div class="${e.fields}"><label>${t("eventYourName")}<input name="name" maxlength="160" required autocomplete="name" value="${esc(profile.name || "")}" /></label><label>${t("eventYourPhone")}<input name="phone" type="tel" dir="ltr" maxlength="30" required autocomplete="tel" value="${esc(profile.phone || "")}" /></label></div><p class="${e.formError}" role="alert"></p><button class="${s.button} ${s.primary}" type="submit">${t("eventRegister")}</button></form>` : ""}</article>`;
-    })
+const field = (key, type = "text", options = {}) =>
+  `<label for="event-${key}">${t(options.label)}<input id="event-${key}" name="${key}" type="${type}" ${options.required ? "required" : ""} maxlength="${options.maxLength || 200}" ${options.direction ? `dir="${options.direction}"` : ""} ${options.autocomplete ? `autocomplete="${options.autocomplete}"` : ""} /></label>`;
+
+function clientForm(data, survey) {
+  const companies = data.companies
+    .map(
+      (company) =>
+        `<label class="${e.choice}"><input type="checkbox" name="company_ids" value="${esc(company.id)}" /><span>${esc(nameOf(company))}</span></label>`,
+    )
     .join("");
-  return `<section class="${e.page}"><div class="${e.heading}"><h1 tabindex="-1">${t("events")}</h1><p>${t("eventsIntro")}</p></div>${cards ? `<div class="${e.list}">${cards}</div>` : `<div class="${e.empty}"><h2>${t("eventNoEvents")}</h2><p>${t("eventNoEventsText")}</p></div>`}</section>`;
+  const activities = activityValues
+    .map(
+      (value, index) =>
+        `<label class="${e.choice}"><input type="checkbox" name="activities" value="${value}" /><span>${t(activityKeys[index])}</span></label>`,
+    )
+    .join("");
+
+  return `<form id="event-request-form" class="${e.requestForm}" data-survey-id="${esc(survey.id)}" novalidate><div class="${e.fields}">${field("pharmacy_name", "text", { label: "eventPharmacyName", required: true, maxLength: 200 })}${field("pharmacy_code", "text", { label: "eventPharmacyCode", required: true, maxLength: 80 })}${field("pharmacy_address", "text", { label: "eventPharmacyAddress", required: true, maxLength: 500 })}${field("doctor_name", "text", { label: "eventDoctorName", required: true, maxLength: 160 })}${field("phone", "tel", { label: "eventPhone", required: true, maxLength: 30, direction: "ltr", autocomplete: "tel" })}${field("preferred_date", "date", { label: "eventPreferredDate", required: true })}${field("starts_at", "time", { label: "eventStartsAt", required: true })}${field("ends_at", "time", { label: "eventEndsAt", required: true })}</div><fieldset class="${e.choiceGroup}"><legend>${t("eventCompanies")}</legend><p>${t("eventCompaniesHelp")}</p><div class="${e.choiceGrid}">${companies || `<span>${t("exclusiveEmpty")}</span>`}</div></fieldset><fieldset class="${e.choiceGroup}"><legend>${t("eventActivities")}</legend><label class="${e.selectAll}"><input id="event-select-all-activities" type="checkbox" /><span>${t("eventSelectAll")}</span></label><div class="${e.choiceGrid}">${activities}</div></fieldset><p class="${e.formError}" role="alert"></p><p id="event-request-status" class="${e.formStatus}" role="status"></p><button class="${s.button} ${s.primary}" type="submit">${t("eventSubmit")}</button></form>`;
+}
+
+export function eventsPage(data) {
+  const survey = data.event_surveys.find((item) => item.is_open);
+  return `<section class="${e.page}"><div class="${e.heading}"><h1 tabindex="-1">${t("events")}</h1><p>${t("eventsIntro")}</p></div>${survey ? `<article class="${e.clientSurvey}"><div class="${e.surveyStatus}" data-open="true"><span aria-hidden="true"></span>${t("eventSurveyOpen")}</div><p class="${e.description}">${t("eventSurveyOpenHelp")}</p>${clientForm(data, survey)}</article>` : `<div class="${e.empty}"><div class="${e.surveyStatus}" data-open="false"><span aria-hidden="true"></span>${t("eventSurveyClosed")}</div><p>${t("eventSurveyUnavailable")}</p></div>`}</section>`;
 }
 
 export function bindEvents(root, signal, render) {
-  root.querySelectorAll("[data-event-id]").forEach((form) =>
-    form.addEventListener(
-      "submit",
-      async (event) => {
-        event.preventDefault();
-        const name = form.elements.name.value.trim();
-        const phone = form.elements.phone.value.trim();
-        const error = form.querySelector('[role="alert"]');
-        error.textContent = "";
-        if (!name || phone.length < 7) {
-          error.textContent = t("eventRequired");
-          (!name ? form.elements.name : form.elements.phone).focus();
-          return;
-        }
-        const submit = form.querySelector('[type="submit"]');
-        submit.disabled = true;
-        try {
-          await registerForEvent(form.dataset.eventId, name, phone);
-          notify(t("eventSaved"));
-          await render();
-        } catch (issue) {
-          error.textContent =
-            issue?.code === "23505"
-              ? t("eventRegistered")
-              : issue?.code === "42501" || issue?.message === "event_closed"
-                ? t("eventClosedError")
-                : t("eventRegisterError");
-          submit.disabled = false;
-        }
+  const form = root.querySelector("#event-request-form");
+  if (!form) return;
+
+  const selectAll = form.querySelector("#event-select-all-activities");
+  const activityInputs = [...form.querySelectorAll('[name="activities"]')];
+  selectAll.addEventListener(
+    "change",
+    () => {
+      activityInputs.forEach((input) => (input.checked = selectAll.checked));
+    },
+    { signal },
+  );
+  activityInputs.forEach((input) =>
+    input.addEventListener(
+      "change",
+      () => {
+        selectAll.checked = activityInputs.every((item) => item.checked);
+        selectAll.indeterminate =
+          !selectAll.checked && activityInputs.some((item) => item.checked);
       },
       { signal },
     ),
   );
-}
 
-export function adminEventsPage(data, route) {
-  const selected =
-    route.parts[2] === "edit"
-      ? data.events.find((item) => item.id === route.parts[3])
-      : null;
-  const editing = route.parts[2] === "edit";
-  if (editing && !selected) return `<p>${t("notFound")}</p>`;
-  const form = `<form id="event-editor" class="${e.adminForm}" data-id="${selected?.id || ""}" data-revision="${selected?.revision || 0}" novalidate><h2>${t(editing ? "eventEdit" : "eventCreate")}</h2><label>${t("eventName")}<input name="name" maxlength="200" required value="${esc(selected?.name || "")}" /></label><label>${t("eventDescription")}<textarea name="description" maxlength="3000" required rows="4">${esc(selected?.description || "")}</textarea></label><div class="${e.fields}"><label>${t("eventStart")}<input name="start_date" type="date" required value="${selected?.start_date || ""}" /></label><label>${t("eventEnd")}<input name="end_date" type="date" required value="${selected?.end_date || ""}" /></label></div><p class="${e.formError}" role="alert"></p><div class="${e.actions}"><button class="${s.button} ${s.primary}" type="submit">${t("save")}</button>${editing ? `<a class="${s.button} ${s.secondary}" href="#/admin/events">${t("cancel")}</a>` : ""}</div></form>`;
-  const list = data.events
-    .map((event) => {
-      const people = data.event_participants.filter(
-        (item) => item.event_id === event.id,
-      );
-      return `<article class="${e.adminEvent}"><div class="${e.cardHead}"><div><h3>${esc(event.name)}</h3><p>${displayDate(event.start_date)} — ${displayDate(event.end_date)}</p></div><a class="${s.button} ${s.secondary}" href="#/admin/events/edit/${event.id}">${t("edit")}</a></div><details><summary>${t("eventParticipants")} (${people.length})</summary>${people.length ? `<div class="${e.participantScroll}"><table><thead><tr><th>${t("eventYourName")}</th><th>${t("username")}</th><th>${t("eventYourPhone")}</th></tr></thead><tbody>${people.map((item) => `<tr><td>${esc(item.name)}</td><td>${esc(item.username)}</td><td dir="ltr">${esc(item.phone)}</td></tr>`).join("")}</tbody></table></div>` : `<p>${t("empty")}</p>`}</details></article>`;
-    })
-    .join("");
-  return `<div class="${e.adminPage}"><div class="${e.heading}"><h1 tabindex="-1">${t("events")}</h1><p>${t("eventsIntro")}</p></div>${form}<div class="${e.adminList}">${list}</div></div>`;
-}
-
-export function bindAdminEvents(root, signal, render, navigate, setDirty) {
-  const form = root.querySelector("#event-editor");
-  if (!form) return;
-  form.addEventListener("input", () => setDirty(true), { signal });
   form.addEventListener(
     "submit",
     async (event) => {
       event.preventDefault();
+      if (form.dataset.busy === "true") return;
       const values = Object.fromEntries(new FormData(form));
       const error = form.querySelector('[role="alert"]');
+      const status = form.querySelector('[role="status"]');
+      const phoneInput = form.elements.phone;
       error.textContent = "";
+      status.textContent = "";
+      phoneInput.removeAttribute("aria-invalid");
+
       if (
-        !values.name.trim() ||
-        !values.description.trim() ||
-        !values.start_date ||
-        !values.end_date
+        !values.pharmacy_name?.trim() ||
+        !values.pharmacy_code?.trim() ||
+        !values.pharmacy_address?.trim() ||
+        !values.doctor_name?.trim() ||
+        !values.phone?.trim() ||
+        !values.preferred_date ||
+        !values.starts_at ||
+        !values.ends_at
       ) {
-        error.textContent = t("required");
+        error.textContent = t("eventRequired");
+        form.querySelector(":invalid")?.focus();
         return;
       }
-      if (values.end_date < values.start_date) {
-        error.textContent = t("eventDatesError");
+      const phone = normalizeContactPhone(values.phone);
+      if (!phone) {
+        error.textContent = t("invalidPhone");
+        phoneInput.setAttribute("aria-invalid", "true");
+        phoneInput.focus();
         return;
       }
-      const submit = form.querySelector('[type="submit"]');
-      submit.disabled = true;
+      if (values.ends_at <= values.starts_at) {
+        error.textContent = t("eventTimeError");
+        form.elements.ends_at.focus();
+        return;
+      }
+
+      const button = form.querySelector('[type="submit"]');
+      form.dataset.busy = "true";
+      button.disabled = true;
+      const request = {
+        survey_id: form.dataset.surveyId,
+        pharmacy_name: values.pharmacy_name.trim(),
+        pharmacy_code: values.pharmacy_code.trim(),
+        pharmacy_address: values.pharmacy_address.trim(),
+        doctor_name: values.doctor_name.trim(),
+        phone,
+        preferred_date: values.preferred_date,
+        starts_at: values.starts_at,
+        ends_at: values.ends_at,
+        company_ids: [...new Set(new FormData(form).getAll("company_ids"))],
+        activities: [...new Set(new FormData(form).getAll("activities"))],
+      };
       try {
-        await saveEvent(
-          {
-            ...values,
-            id: form.dataset.id || undefined,
-            name: values.name.trim(),
-            description: values.description.trim(),
-          },
-          Number(form.dataset.revision),
-        );
-        setDirty(false);
-        notify(t("saved"));
-        navigate("#/admin/events");
+        await submitEventRequest(request);
+        notify(t("eventSubmitSuccess"));
+        await render();
       } catch (issue) {
         error.textContent =
-          issue?.code === "conflict" ? t("conflict") : t("saveError");
-        submit.disabled = false;
+          issue?.message === "event_closed" || issue?.code === "42501"
+            ? t("eventSurveyUnavailable")
+            : issue?.code === "23503" || issue?.message === "invalid_company"
+              ? t("eventCompanyInvalid")
+              : t("eventSubmitError");
+        form.dataset.busy = "false";
+        button.disabled = false;
+      }
+    },
+    { signal },
+  );
+}
+
+function choicesText(row) {
+  const companies = Array.isArray(row.company_names) ? row.company_names : [];
+  const companyNames = companies
+    .map((company) =>
+      typeof company === "string"
+        ? company
+        : locale === "ar"
+          ? company.name_ar || company.name_en
+          : company.name_en || company.name_ar,
+    )
+    .filter(Boolean);
+  const activities = (row.activities || []).map((activity) =>
+    t(activityLabels[activity] || activity),
+  );
+  return {
+    companies: companyNames.length ? companyNames.join("، ") : "—",
+    activities: activities.length ? activities.join("، ") : "—",
+  };
+}
+
+function submittedAt(value) {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function requestTable(rows) {
+  if (!rows.length)
+    return `<div class="${e.empty}"><h2>${t("eventNoRequests")}</h2><p>${t("eventNoRequestsText")}</p></div>`;
+  const body = rows
+    .map((row) => {
+      const choices = choicesText(row);
+      return `<tr><td>${esc(row.pharmacy_name)}</td><td dir="ltr">${esc(row.pharmacy_code)}</td><td>${esc(row.pharmacy_address)}</td><td>${esc(row.doctor_name)}</td><td dir="ltr"><a href="tel:${esc(row.phone)}">${esc(row.phone)}</a></td><td>${displayDate(row.preferred_date)}</td><td dir="ltr"><bdi>${esc(row.starts_at.slice(0, 5))}–${esc(row.ends_at.slice(0, 5))}</bdi></td><td>${esc(choices.companies)}</td><td>${esc(choices.activities)}</td><td>${esc(submittedAt(row.submitted_at))}</td></tr>`;
+    })
+    .join("");
+  return `<p class="${e.tableScrollHint}">${t("tableScrollHint")}</p><div class="${e.requestTableWrap}" role="region" tabindex="0" aria-label="${t("eventRequests")}"><table class="${e.requestTable}"><thead><tr><th scope="col">${t("eventPharmacyName")}</th><th scope="col">${t("eventPharmacyCode")}</th><th scope="col">${t("eventPharmacyAddress")}</th><th scope="col">${t("eventDoctorName")}</th><th scope="col">${t("eventPhone")}</th><th scope="col">${t("eventPreferredDate")}</th><th scope="col">${t("eventStartsAt")} – ${t("eventEndsAt")}</th><th scope="col">${t("eventCompanies")}</th><th scope="col">${t("eventActivities")}</th><th scope="col">${t("eventSubmittedAt")}</th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+export function adminEventsPage(data) {
+  const activeSurvey = data.event_surveys.find((item) => item.is_open);
+  const requests = data.event_requests;
+  const status = activeSurvey ? "eventSurveyOpen" : "eventSurveyClosed";
+  const statusHelp = activeSurvey
+    ? "eventSurveyOpenHelp"
+    : "eventSurveyClosedHelp";
+  const action = activeSurvey ? "eventEndSurvey" : "eventStartSurvey";
+  return `<section class="${e.adminPage}"><div class="${e.heading}"><h1 tabindex="-1">${t("events")}</h1><p>${t("eventAdminIntro")}</p></div><section class="${e.surveyPanel}" aria-labelledby="event-survey-title"><div><h2 id="event-survey-title">${t("eventSurveyStatus")}</h2><p>${t(statusHelp)}</p></div><span class="${e.surveyStatus}" data-open="${Boolean(activeSurvey)}"><span aria-hidden="true"></span>${t(status)}</span><button id="event-survey-toggle" type="button" class="${s.button} ${s.primary}" data-survey-id="${esc(activeSurvey?.id || "")}" data-revision="${activeSurvey?.revision || 0}">${t(action)}</button><p id="event-survey-error" class="${e.formError}" role="alert"></p></section><div class="${e.requestsHeading}"><h2>${t("eventRequests")}</h2><span>${number(requests.length)} ${t("eventRequestCount")}</span></div>${requestTable(requests)}</section>`;
+}
+
+export function bindAdminEvents(root, signal, render, setDirty) {
+  const button = root.querySelector("#event-survey-toggle");
+  if (!button) return;
+  button.addEventListener(
+    "click",
+    async () => {
+      const isOpen = Boolean(button.dataset.surveyId);
+      const confirmed = await ask(
+        t(isOpen ? "eventCloseSurveyConfirm" : "eventOpenSurveyConfirm"),
+        t(isOpen ? "eventSurveyOpenHelp" : "eventSurveyClosedHelp"),
+        t(isOpen ? "eventEndSurvey" : "eventStartSurvey"),
+      );
+      if (!confirmed) return;
+      const error = root.querySelector("#event-survey-error");
+      error.textContent = "";
+      button.disabled = true;
+      try {
+        await saveEventSurvey(
+          isOpen
+            ? { id: button.dataset.surveyId, is_open: false }
+            : { is_open: true },
+          Number(button.dataset.revision),
+        );
+        setDirty(false);
+        notify(t(isOpen ? "eventSurveyEnded" : "eventSurveyStarted"));
+        await render();
+      } catch {
+        error.textContent = t("eventSurveySaveError");
+        button.disabled = false;
       }
     },
     { signal },

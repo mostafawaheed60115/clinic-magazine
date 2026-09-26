@@ -147,6 +147,249 @@
 .adminForm textarea {
   resize: vertical;
 }
+.clientSurvey,
+.surveyPanel {
+  padding: clamp(22px, 3vw, 36px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(145deg, var(--paper), var(--surface-tint));
+  box-shadow:
+    var(--elevation-2),
+    inset 0 1px 0 var(--edge-highlight);
+}
+.clientSurvey > .description {
+  margin-block: 12px 22px;
+}
+.requestForm {
+  display: grid;
+  gap: 24px;
+}
+.requestForm .fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.requestForm label {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+.requestForm input:not([type="checkbox"]) {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--paper);
+  font: inherit;
+}
+.requestForm input:focus-visible {
+  outline: 3px solid var(--primary-deep);
+  outline-offset: 2px;
+}
+.choiceGroup {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.choiceGroup legend {
+  padding-inline: 7px;
+  color: var(--ink);
+  font-weight: 800;
+}
+.choiceGroup > p {
+  color: var(--muted);
+  font-size: 13px;
+}
+.choiceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.requestForm .choice,
+.requestForm .selectAll {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--paper);
+  font-weight: 550;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.requestForm .choice:has(input:checked),
+.requestForm .selectAll:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--surface-tint);
+  box-shadow: inset 0 0 0 1px rgb(47 116 72 / 0.1);
+}
+.requestForm .choice input,
+.requestForm .selectAll input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-block-start: 2px;
+  accent-color: var(--primary-deep);
+}
+.requestForm .selectAll {
+  width: fit-content;
+  min-width: min(220px, 100%);
+  font-weight: 750;
+}
+.surveyStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  padding: 7px 12px;
+  border: 1px solid rgb(47 116 72 / 0.14);
+  border-radius: 99px;
+  color: var(--primary-deep);
+  background: var(--surface-tint);
+  font-size: 13px;
+  font-weight: 800;
+}
+.surveyStatus > span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgb(67 154 98 / 0.13);
+}
+.surveyStatus[data-open="false"] {
+  border-color: var(--line);
+  color: var(--muted);
+  background: var(--paper);
+}
+.surveyStatus[data-open="false"] > span {
+  background: var(--inactive);
+  box-shadow: 0 0 0 3px rgb(150 163 154 / 0.15);
+}
+.formStatus:empty {
+  display: none;
+}
+.surveyPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px 22px;
+  margin-block: 0 32px;
+}
+.surveyPanel h2,
+.requestsHeading h2 {
+  color: var(--ink);
+  font-size: clamp(19px, 2.5vw, 25px);
+}
+.surveyPanel p {
+  margin-block-start: 5px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.surveyPanel .surveyStatus {
+  justify-self: end;
+}
+.surveyPanel > button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.surveyPanel .formError {
+  grid-column: 1 / -1;
+}
+.requestsHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-block: 10px 16px;
+}
+.requestsHeading > span {
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  color: var(--primary-deep);
+  background: var(--paper);
+  font-size: 12px;
+  font-weight: 800;
+}
+.requestTableWrap {
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: var(--elevation-1);
+}
+.tableScrollHint {
+  display: none;
+  margin: 10px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.requestTableWrap:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 4px;
+}
+.requestTable {
+  width: 100%;
+  min-width: 1280px;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: start;
+  font-size: 12px;
+}
+.requestTable th,
+.requestTable td {
+  max-width: 260px;
+  padding: 12px 14px;
+  border-block-end: 1px solid var(--line);
+  text-align: start;
+  vertical-align: top;
+}
+.requestTable th {
+  position: sticky;
+  z-index: 1;
+  inset-block-start: 0;
+  color: var(--ink);
+  background: var(--surface-tint);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.requestTable td {
+  overflow-wrap: anywhere;
+}
+.requestTable td:first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background: var(--paper);
+  font-weight: 800;
+}
+.requestTable th:first-child {
+  inset-inline-start: 0;
+  z-index: 2;
+}
+.requestTable tbody tr:hover td {
+  background: var(--surface-tint);
+}
+.requestTable a {
+  color: var(--primary-deep);
+}
+.requestTable a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .adminEvent p {
   margin: 5px 0;
   color: var(--muted);
@@ -185,6 +428,35 @@
   .registerForm button {
     width: 100%;
     justify-content: center;
+  }
+  .requestForm .fields,
+  .choiceGrid {
+    grid-template-columns: 1fr;
+  }
+  .clientSurvey,
+  .surveyPanel {
+    padding: 20px 15px;
+  }
+  .surveyPanel {
+    grid-template-columns: 1fr;
+  }
+  .surveyPanel .surveyStatus {
+    justify-self: start;
+  }
+  .surveyPanel > button,
+  .surveyPanel .formError {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .surveyPanel > button {
+    width: 100%;
+    justify-content: center;
+  }
+  .requestTable {
+    min-width: 1080px;
+  }
+  .tableScrollHint {
+    display: block;
   }
   .adminEvent .cardHead a {
     width: 100%;

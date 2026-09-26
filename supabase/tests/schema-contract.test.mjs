@@ -26,6 +26,20 @@ const eventsMigration = await readFile(
   ),
   "utf8",
 );
+const eventRequestMigration = await readFile(
+  new URL(
+    "../migrations/20260926121500_event_request_survey_and_telesales.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
+const readIndexesMigration = await readFile(
+  new URL(
+    "../migrations/20260926133000_catalog_read_indexes.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 for (const table of ["users", "admin", "companies", "products", "offers"]) {
   assert.match(
@@ -101,5 +115,35 @@ assert.match(eventsMigration, /primary key \(event_id, user_id\)/);
 assert.match(eventsMigration, /user_id = \(select auth\.uid\(\)\)/);
 assert.match(eventsMigration, /private\.is_active_member\(\)/);
 assert.match(eventsMigration, /event_participants_insert/);
+assert.match(eventRequestMigration, /telesales_whatsapp_phone/);
+assert.match(eventRequestMigration, /complaints_phone/);
+assert.match(eventRequestMigration, /create table public\.event_surveys\b/);
+assert.match(eventRequestMigration, /create table public\.event_requests\b/);
+assert.match(eventRequestMigration, /event_surveys_one_open_idx/);
+assert.match(eventRequestMigration, /private\.is_active_member\(\)/);
+assert.match(eventRequestMigration, /user_id = \(select auth\.uid\(\)\)/);
+assert.match(eventRequestMigration, /survey\.is_open/);
+assert.match(eventRequestMigration, /company_names jsonb/);
+assert.match(eventRequestMigration, /pharmacist_training/);
+assert.match(
+  eventRequestMigration,
+  /event_requests_owner_or_admin_select/,
+);
+assert.match(
+  eventRequestMigration,
+  /event_requests_member_insert/,
+);
+assert.match(
+  eventRequestMigration,
+  /alter table public\.event_requests enable row level security/,
+);
+for (const table of ["companies", "products", "offers"]) {
+  assert.match(
+    readIndexesMigration,
+    new RegExp(`create index if not exists ${table}_name_en_id_idx`),
+  );
+}
+assert.match(readIndexesMigration, /event_surveys_started_at_id_idx/);
+assert.match(readIndexesMigration, /event_requests_submitted_at_id_idx/);
 
 console.log("Clinic Supabase schema contract passed");

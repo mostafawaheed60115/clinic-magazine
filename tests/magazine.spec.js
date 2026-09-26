@@ -75,28 +75,18 @@ test("product CSV download retains Arabic and damaged uploads stop before previe
   await expect(page.locator("#apply-brand-import")).toHaveCount(0);
 });
 
-test("admin creates an event and a signed-in buyer registers once", async ({
+test("admin opens and closes the event survey; clients submit requests for review", async ({
   page,
 }) => {
   await english(page);
   await login(page);
   await page.goto("/#/admin/events");
-  const today = await page.evaluate(() =>
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Africa/Cairo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date()),
-  );
-  await page.locator('#event-editor [name="name"]').fill("Clinic day");
+  await page.getByRole("button", { name: "Start accepting requests" }).click();
   await page
-    .locator('#event-editor [name="description"]')
-    .fill("Meet the Clinic team.");
-  await page.locator('#event-editor [name="start_date"]').fill(today);
-  await page.locator('#event-editor [name="end_date"]').fill(today);
-  await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByRole("heading", { name: "Clinic day" })).toBeVisible();
+    .getByRole("button", { name: "Start accepting requests" })
+    .last()
+    .click();
+  await expect(page.getByText("Survey is open for requests")).toBeVisible();
   await page.evaluate(async () => {
     const auth = await import("/src/auth.js");
     await auth.signOut();
@@ -110,13 +100,78 @@ test("admin creates an event and a signed-in buyer registers once", async ({
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
-  await page.screenshot({ path: "work/mobile-events-en.png", fullPage: true });
-  await page.locator('[data-event-id] [name="name"]').fill("Buyer One");
-  await page.locator('[data-event-id] [name="phone"]').fill("01011111111");
-  await page.getByRole("button", { name: "Confirm participation" }).click();
-  await expect(page.getByText("You are registered")).toBeVisible();
-  await page.reload();
-  await expect(page.getByText("You are registered")).toBeVisible();
+  await page
+    .locator('#event-request-form [name="pharmacy_name"]')
+    .fill("صيدلية النور");
+  await page
+    .locator('#event-request-form [name="pharmacy_code"]')
+    .fill("ASY-019");
+  await page
+    .locator('#event-request-form [name="pharmacy_address"]')
+    .fill("شارع الجلاء، أسيوط");
+  await page
+    .locator('#event-request-form [name="doctor_name"]')
+    .fill("د. سارة محمود");
+  await page.locator('#event-request-form [name="phone"]').fill("01011111111");
+  await page
+    .locator('#event-request-form [name="preferred_date"]')
+    .fill("2026-10-15");
+  await page.locator('#event-request-form [name="starts_at"]').fill("09:30");
+  await page.locator('#event-request-form [name="ends_at"]').fill("11:00");
+  await page
+    .locator('#event-request-form [name="company_ids"]')
+    .first()
+    .check();
+  await page.locator("#event-select-all-activities").check();
+  await page
+    .locator(
+      '#event-request-form [name="activities"][value="pharmacist_training"]',
+    )
+    .uncheck();
+  await expect(
+    page.locator('#event-request-form [name="activities"]:checked'),
+  ).toHaveCount(3);
+  await page.getByRole("button", { name: "Submit event request" }).click();
+  await expect(
+    page.getByText("Your event request has been sent."),
+  ).toBeVisible();
+
+  await page.evaluate(async () => {
+    const auth = await import("/src/auth.js");
+    await auth.signOut();
+    await auth.signIn("admin", "clinic");
+  });
+  await page.goto("/#/admin/events");
+  const requestTable = page.getByRole("table");
+  await expect(requestTable).toBeVisible();
+  await expect(
+    page.getByText(
+      "Scroll the table horizontally to see the remaining columns.",
+    ),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await expect(requestTable).toContainText("صيدلية النور");
+  await expect(requestTable).toContainText("ASY-019");
+  await expect(requestTable).toContainText("د. سارة محمود");
+  await expect(requestTable).toContainText("Spin the wheel");
+  await expect(requestTable).not.toContainText("Training for pharmacy staff");
+  await page.getByRole("button", { name: "Close survey" }).click();
+  await page.getByRole("button", { name: "Close survey" }).last().click();
+  await expect(page.getByText("Survey is currently closed")).toBeVisible();
+  await page.evaluate(async () => {
+    const auth = await import("/src/auth.js");
+    await auth.signOut();
+    await auth.signIn("demo", "clinic");
+  });
+  await page.goto("/#/events");
+  await expect(
+    page.getByText("The survey is closed. Please check again later."),
+  ).toBeVisible();
+  await expect(page.locator("#event-request-form")).toHaveCount(0);
 });
 
 test("brand tiles keep the localized name visible beside the mark", async ({
@@ -166,6 +221,10 @@ test("exclusive brands, product table and consultation settings work together", 
   ).toBeVisible();
 
   await page.goto("/#/admin/settings");
+  await expect(page.locator("#telesales_whatsapp_phone")).toHaveValue(
+    "+201200186286",
+  );
+  await expect(page.locator("#complaints_phone")).toHaveValue("+201005758214");
   await page.locator("#whatsapp_phone").fill("invalid");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.locator("#whatsapp_phone")).toHaveAttribute(
@@ -182,6 +241,18 @@ test("exclusive brands, product table and consultation settings work together", 
     page.getByRole("link", { name: "Customer Service" }),
   ).toHaveAttribute("href", "tel:+201022222222");
   await expect(page.locator('footer a[href="tel:+20881234567"]')).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Contact telesales" }),
+  ).toHaveAttribute("href", /wa\.me\/201200186286\?text=/);
+  await expect(
+    page.locator('footer a[href="tel:+201005758214"]'),
+  ).toBeVisible();
+  const salesHref = await page
+    .getByRole("link", { name: "Contact telesales" })
+    .getAttribute("href");
+  expect(new URL(salesHref).searchParams.get("text")).toBe(
+    "اهلا، محتاج اتواصل مع أحد ممثلي خدمه العملاء",
+  );
   const href = await page
     .getByRole("link", { name: "Ask for medical consultant" })
     .getAttribute("href");
@@ -593,7 +664,7 @@ test("empty catalogs, long Arabic names and safe text rendering", async ({
   await page.goto("/");
   await page.locator("#cover").waitFor();
   await page.evaluate(async () => {
-    const request = indexedDB.open("clinic-magazine", 2);
+    const request = indexedDB.open("clinic-magazine", 3);
     await new Promise((resolve) => {
       request.onsuccess = () => {
         const db = request.result;

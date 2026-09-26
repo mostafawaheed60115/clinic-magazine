@@ -210,7 +210,7 @@ async function readCollection(collection) {
   }
 }
 
-// Page through event data so the admin participant list does not stop at the
+// Page through event data so the admin request list does not stop at the
 // Data API's per-request row cap.
 async function readEventRows(table, fields, sortColumn) {
   const rows = [];
@@ -224,12 +224,7 @@ async function readEventRows(table, fields, sortColumn) {
       .from(table)
       .select(fields)
       .order(sortColumn, { ascending: false });
-    query =
-      table === "events"
-        ? query.order("id", { ascending: true })
-        : query
-            .order("event_id", { ascending: true })
-            .order("user_id", { ascending: true });
+    query = query.order("id", { ascending: true });
     const { data, error } = await query.range(offset, offset + PAGE_SIZE - 1);
     if (error) throw error;
     rows.push(...(data || []));
@@ -237,26 +232,33 @@ async function readEventRows(table, fields, sortColumn) {
   }
 }
 
-export async function readCatalog() {
-  const [values, settingsResult, events, participants] = await Promise.all([
+export async function readCatalog({
+  includeEvents = false,
+  includeEventRequests = false,
+} = {}) {
+  const [values, settingsResult, surveys, requests] = await Promise.all([
     Promise.all(COLLECTIONS.map(readCollection)),
     requireClient()
       .from("app_settings")
       .select(
-        "id, whatsapp_phone, customer_service_phone, contact_phone, revision",
+        "id, whatsapp_phone, telesales_whatsapp_phone, complaints_phone, customer_service_phone, contact_phone, revision",
       )
       .eq("id", 1)
       .single(),
-    readEventRows(
-      "events",
-      "id, name, description, start_date, end_date, revision",
-      "start_date",
-    ),
-    readEventRows(
-      "event_participants",
-      "event_id, user_id, username, name, phone, registered_at",
-      "registered_at",
-    ),
+    includeEvents
+      ? readEventRows(
+          "event_surveys",
+          "id, is_open, started_at, ended_at, revision",
+          "started_at",
+        )
+      : Promise.resolve([]),
+    includeEventRequests
+      ? readEventRows(
+          "event_requests",
+          "id, survey_id, user_id, pharmacy_name, pharmacy_code, pharmacy_address, doctor_name, phone, preferred_date, starts_at, ends_at, company_ids, company_names, activities, submitted_at",
+          "submitted_at",
+        )
+      : Promise.resolve([]),
   ]);
   if (settingsResult.error) throw settingsResult.error;
   return {
@@ -264,8 +266,8 @@ export async function readCatalog() {
       COLLECTIONS.map((collection, index) => [collection, values[index]]),
     ),
     settings: settingsResult.data,
-    events,
-    event_participants: participants,
+    event_surveys: surveys,
+    event_requests: requests,
   };
 }
 
@@ -276,7 +278,7 @@ export async function saveConsultationSettings(settings, expectedRevision) {
     .eq("id", 1)
     .eq("revision", expectedRevision)
     .select(
-      "id, whatsapp_phone, customer_service_phone, contact_phone, revision",
+      "id, whatsapp_phone, telesales_whatsapp_phone, complaints_phone, customer_service_phone, contact_phone, revision",
     )
     .maybeSingle();
   if (error) throw error;
@@ -285,21 +287,19 @@ export async function saveConsultationSettings(settings, expectedRevision) {
   return data;
 }
 
-export async function saveEvent(event, expectedRevision = 0) {
+export async function saveEventSurvey(survey, expectedRevision = 0) {
   const client = requireClient();
-  const record = {
-    name: event.name,
-    description: event.description,
-    start_date: event.start_date,
-    end_date: event.end_date,
-  };
-  const query = expectedRevision
+  const query = survey.id
     ? client
-        .from("events")
-        .update({ ...record, revision: expectedRevision + 1 })
-        .eq("id", event.id)
+        .from("event_surveys")
+        .update({
+          is_open: false,
+          ended_at: new Date().toISOString(),
+          revision: expectedRevision + 1,
+        })
+        .eq("id", survey.id)
         .eq("revision", expectedRevision)
-    : client.from("events").insert(record);
+    : client.from("event_surveys").insert({ is_open: true, revision: 1 });
   const { data, error } = await query.select().maybeSingle();
   if (error) throw error;
   if (!data)
@@ -307,15 +307,27 @@ export async function saveEvent(event, expectedRevision = 0) {
   return data;
 }
 
-export async function registerForEvent(eventId, userId, name, phone) {
-  const { error } = await requireClient().from("event_participants").insert({
-    event_id: eventId,
-    user_id: userId,
-    name,
-    phone,
-    username: "pending",
-  });
+export async function submitEventRequest(request, userId) {
+  const { data, error } = await requireClient()
+    .from("event_requests")
+    .insert({
+      survey_id: request.survey_id,
+      user_id: userId,
+      pharmacy_name: request.pharmacy_name,
+      pharmacy_code: request.pharmacy_code,
+      pharmacy_address: request.pharmacy_address,
+      doctor_name: request.doctor_name,
+      phone: request.phone,
+      preferred_date: request.preferred_date,
+      starts_at: request.starts_at,
+      ends_at: request.ends_at,
+      company_ids: request.company_ids,
+      activities: request.activities,
+    })
+    .select("id")
+    .single();
   if (error) throw error;
+  return data;
 }
 
 export async function saveCatalogItem(collection, item, expectedRevision) {

@@ -20,12 +20,10 @@ import {
   bindCarousel,
   novaAttribution,
 } from "./pages.js";
-import { adminPage, bindAdmin, isDirty, mayLeave, markClean } from "./admin.js";
+import { isDirty, mayLeave, markClean } from "./navigation-state.js";
 import { icon, arrow, hydrateImages, notify, s } from "./ui.js";
 import m from "./styles/magazine.module.css";
-import { consultationUrl } from "./consultation.js";
-import { phoneUrl } from "./consultation.js";
-import { eventsPage, bindEvents } from "./events.js";
+import { consultationUrl, phoneUrl, telesalesUrl } from "./consultation.js";
 
 initLocale();
 const app = document.querySelector("#app");
@@ -83,13 +81,20 @@ function chrome(route, content, options = {}) {
   const consultation = whatsappHref
     ? `<a class="${m.consultationButton}" href="${whatsappHref}" target="_blank" rel="noopener noreferrer" aria-label="${t("medicalConsultation")}">${icon("whatsapp")}<span>${t("medicalConsultation")}</span></a>`
     : "";
+  const telesalesHref = !admin
+    ? telesalesUrl(options.settings?.telesales_whatsapp_phone)
+    : "";
+  const telesalesButton = telesalesHref
+    ? `<a class="${m.telesalesButton}" href="${telesalesHref}" target="_blank" rel="noopener noreferrer" aria-label="${t("telesalesWhatsapp")}">${icon("whatsapp")}<span>${t("telesalesWhatsapp")}</span></a>`
+    : "";
   const serviceHref = phoneUrl(options.settings?.customer_service_phone);
   const contactHref = phoneUrl(options.settings?.contact_phone);
+  const complaintsHref = phoneUrl(options.settings?.complaints_phone);
   const serviceButton =
     !admin && serviceHref
       ? `<a class="${m.serviceButton}" href="${serviceHref}" aria-label="${t("customerService")}">${icon("phone")}<span>${t("customerService")}</span></a>`
       : "";
-  return `<a class="${m.skip}" href="#main">${t("skip")}</a><header class="${m.header} ${admin ? m.adminHeader : ""}"><div class="${m.headerInner}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="145" height="145" /></a>${navigation}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a><button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></div></header><div class="${m.shell} ${options.keepSearch ? m.searchRender : ""}"><main id="main">${content}</main></div><footer class="${m.footer}"><div class="${m.footerInner}"><div class="${m.footerTop}"><div><p>${t("footerText")}</p>${novaAttribution()}</div><div class="${m.footerContact}">${contactHref ? `<a href="${contactHref}">${icon("phone")}${t("contactPhone")}: <bdi>${options.settings.contact_phone}</bdi></a>` : ""}<a href="https://maps.app.goo.gl/9WJEDL2zPNAr9djK9" target="_blank" rel="noopener noreferrer">${icon("map")}${t("branch1")}</a><p>${icon("map")}${t("branch2")}: ${t("branch2Address")}</p></div>${admin ? "" : `<a class="${m.footerExploreLink}" href="#/brands">${t("exploreBrands")}${arrow()}</a>`}</div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span>${social}${admin ? "" : `<a href="#/admin">${t("admin")}</a>`}</div></div></footer}<div class="${m.floatingActions}">${consultation}${serviceButton}</div><div class="${m.demoNotice}">${authState.mode === "demo" ? t("demo") : ""}</div>`;
+  return `<a class="${m.skip}" href="#main">${t("skip")}</a><header class="${m.header} ${admin ? m.adminHeader : ""}"><div class="${m.headerInner}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="145" height="145" /></a>${navigation}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a><button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></div></header><div class="${m.shell} ${options.keepSearch ? m.searchRender : ""}"><main id="main">${content}</main></div><footer class="${m.footer}"><div class="${m.footerInner}"><div class="${m.footerTop}"><div><p>${t("footerText")}</p>${novaAttribution()}</div><div class="${m.footerContact}">${contactHref ? `<a href="${contactHref}">${icon("phone")}${t("contactPhone")}: <bdi>${options.settings.contact_phone}</bdi></a>` : ""}${complaintsHref ? `<a href="${complaintsHref}">${icon("phone")}${t("complaintsPhone")}: <bdi>${options.settings.complaints_phone}</bdi></a>` : ""}<p>${icon("map")}${t("branch1")}: ${t("branch1Address")}</p><p>${icon("map")}${t("branch2")}: ${t("branch2Address")}</p></div>${admin ? "" : `<a class="${m.footerExploreLink}" href="#/brands">${t("exploreBrands")}${arrow()}</a>`}</div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span>${social}${admin ? "" : `<a href="#/admin">${t("admin")}</a>`}</div></div></footer}<div class="${m.floatingActions}">${consultation}${telesalesButton}${serviceButton}</div><div class="${m.demoNotice}">${authState.mode === "demo" ? t("demo") : ""}</div>`;
 }
 
 function loading(content = t("sessionLoading")) {
@@ -153,9 +158,23 @@ export async function render(options = {}) {
   }
   if (request !== version) return;
   if (!options.keepSearch) app.innerHTML = chrome(route, loading(t("loading")));
+  const includeEvents =
+    page === "events" || (page === "admin" && route.parts[1] === "events");
+  const includeEventRequests = page === "admin" && route.parts[1] === "events";
+  // Fetch optional route code while the catalog request is in flight, keeping
+  // admin-only editing and CSV utilities out of the initial public bundle.
+  const pageModulePromise =
+    page === "admin"
+      ? import("./admin.js")
+      : page === "events"
+        ? import("./events.js")
+        : Promise.resolve(null);
   let data;
   try {
-    data = options.keepSearch && cachedData ? cachedData : await readAll();
+    data =
+      options.keepSearch && cachedData
+        ? cachedData
+        : await readAll({ includeEvents, includeEventRequests });
     cachedData = data;
   } catch {
     if (request !== version) return;
@@ -167,6 +186,7 @@ export async function render(options = {}) {
     bindChrome(signal);
     return;
   }
+  const pageModule = await pageModulePromise;
   if (request !== version) return;
   let content;
   if (page === "offers") content = offersPage(data);
@@ -174,8 +194,9 @@ export async function render(options = {}) {
     content = brandsPage(data, route);
   else if (page === "brand") content = brandPage(data, route);
   else if (page === "product") content = productPage(data, route);
-  else if (page === "events") content = eventsPage(data, authState);
-  else if (page === "admin") content = adminPage(data, route, authState);
+  else if (page === "events") content = pageModule.eventsPage(data, authState);
+  else if (page === "admin")
+    content = pageModule.adminPage(data, route, authState);
   else content = notFound();
   app.innerHTML = chrome(route, content, {
     ...options,
@@ -185,9 +206,14 @@ export async function render(options = {}) {
   hydrateImages(app);
   bindChrome(signal);
   if (page === "offers") bindCarousel(app, data, signal, hydrateImages);
-  if (page === "events") bindEvents(app, signal, render);
+  if (page === "events") pageModule.bindEvents(app, signal, render);
   if (page === "admin")
-    bindAdmin(app, data, route, { signal, render, navigate, authState });
+    pageModule.bindAdmin(app, data, route, {
+      signal,
+      render,
+      navigate,
+      authState,
+    });
   app.querySelector("#copy-product-link")?.addEventListener(
     "click",
     async (event) => {

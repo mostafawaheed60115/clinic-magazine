@@ -2530,11 +2530,14 @@ html[dir="rtl"] .consultationButton {
 @media (prefers-reduced-motion: reduce) {
   .productTable tbody tr,
   .productTableImage img,
-  .consultationButton {
+  .consultationButton,
+  .telesalesButton {
     transition: none;
   }
   .consultationButton:hover,
-  .consultationButton:active {
+  .consultationButton:active,
+  .telesalesButton:hover,
+  .telesalesButton:active {
     transform: none;
   }
 }
@@ -2595,6 +2598,44 @@ html[dir="rtl"] .consultationButton {
 }
 .serviceButton:hover {
   transform: translateY(-2px);
+}
+.telesalesButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  max-width: calc(100vw - 36px);
+  padding: 10px 17px;
+  border: 1px solid rgb(255 255 255 / 0.56);
+  border-radius: 99px;
+  color: #fff;
+  background: #176b49;
+  box-shadow:
+    0 8px 0 rgb(30 51 40 / 0.2),
+    0 18px 36px rgb(30 51 40 / 0.26);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
+  transition:
+    transform 220ms var(--ease-spring),
+    box-shadow 220ms var(--ease-spring);
+}
+.telesalesButton svg {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+.telesalesButton:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 0 rgb(30 51 40 / 0.18),
+    0 22px 40px rgb(30 51 40 / 0.28);
+}
+.telesalesButton:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 rgb(30 51 40 / 0.2),
+    0 6px 14px rgb(30 51 40 / 0.22);
 }
 .socialLinks {
   display: inline-flex;
@@ -2705,6 +2746,7 @@ html[dir="rtl"] .consultationButton {
     bottom: max(12px, env(safe-area-inset-bottom));
   }
   .floatingActions .consultationButton,
+  .floatingActions .telesalesButton,
   .serviceButton {
     width: 52px;
     height: 52px;
@@ -2714,6 +2756,7 @@ html[dir="rtl"] .consultationButton {
     border-radius: 50%;
   }
   .floatingActions .consultationButton span,
+  .floatingActions .telesalesButton span,
   .serviceButton span {
     position: absolute;
     width: 1px;
@@ -2725,6 +2768,7 @@ html[dir="rtl"] .consultationButton {
 }
 @media (max-width: 360px) {
   .floatingActions .consultationButton,
+  .floatingActions .telesalesButton,
   .serviceButton {
     width: 48px;
     height: 48px;

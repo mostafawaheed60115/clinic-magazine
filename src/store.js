@@ -7,8 +7,8 @@ import {
   deleteCatalogItem,
   importBrandProducts as importBrandProductsRemote,
   saveConsultationSettings as saveConsultationSettingsRemote,
-  saveEvent as saveEventRemote,
-  registerForEvent as registerForEventRemote,
+  saveEventSurvey as saveEventSurveyRemote,
+  submitEventRequest as submitEventRequestRemote,
 } from "./cloud.js";
 import {
   normalizeWhatsappPhone,
@@ -52,9 +52,13 @@ async function requireSession() {
   throw error;
 }
 
-export async function readAll({ force = false } = {}) {
+export async function readAll({
+  force = false,
+  includeEvents = false,
+  includeEventRequests = false,
+} = {}) {
   await requireSession();
-  const identity = catalogIdentity();
+  const identity = `${catalogIdentity()}:${includeEvents ? "events" : "catalog"}:${includeEventRequests ? "requests" : "no-requests"}`;
   const now = Date.now();
   if (
     !force &&
@@ -66,9 +70,9 @@ export async function readAll({ force = false } = {}) {
   if (!force && catalogRead?.identity === identity) return catalogRead.promise;
   const promise = (
     isDemoMode()
-      ? demoStore.readAll()
+      ? demoStore.readAll({ includeEvents, includeEventRequests })
       : hasCloudConfig()
-        ? readCatalog()
+        ? readCatalog({ includeEvents, includeEventRequests })
         : Promise.reject(unconfigured())
   ).then((data) => {
     if (generation === cacheGeneration && identity === catalogIdentity()) {
@@ -104,16 +108,22 @@ export async function saveConsultationSettings(settings, expectedRevision) {
   const normalized = {};
   for (const key of [
     "whatsapp_phone",
+    "telesales_whatsapp_phone",
+    "complaints_phone",
     "customer_service_phone",
     "contact_phone",
   ]) {
     normalized[key] = settings[key]
-      ? (key === "whatsapp_phone"
+      ? (["whatsapp_phone", "telesales_whatsapp_phone"].includes(key)
           ? normalizeWhatsappPhone
           : normalizeContactPhone)(settings[key])
       : null;
     if (
-      key === "whatsapp_phone"
+      [
+        "whatsapp_phone",
+        "telesales_whatsapp_phone",
+        "complaints_phone",
+      ].includes(key)
         ? !normalized[key]
         : settings[key] && !normalized[key]
     ) {
@@ -131,30 +141,23 @@ export async function saveConsultationSettings(settings, expectedRevision) {
   return saved;
 }
 
-export async function saveEvent(event, expectedRevision = 0) {
+export async function saveEventSurvey(survey, expectedRevision = 0) {
   await requireSession();
   const saved = isDemoMode()
-    ? await demoStore.saveEvent(event, expectedRevision)
-    : await saveEventRemote(event, expectedRevision);
+    ? await demoStore.saveEventSurvey(survey, expectedRevision)
+    : await saveEventSurveyRemote(survey, expectedRevision);
   invalidateCatalogCache();
   channel?.postMessage("updated");
   return saved;
 }
 
-export async function registerForEvent(eventId, name, phone) {
+export async function submitEventRequest(request) {
   await requireSession();
   const state = getAuthState();
   const userId = state.user?.id;
   if (!userId) throw new Error("A signed-in account is required");
-  if (isDemoMode())
-    await demoStore.registerForEvent(
-      eventId,
-      userId,
-      state.profile?.username,
-      name,
-      phone,
-    );
-  else await registerForEventRemote(eventId, userId, name, phone);
+  if (isDemoMode()) await demoStore.submitEventRequest(request, userId);
+  else await submitEventRequestRemote(request, userId);
   invalidateCatalogCache();
   channel?.postMessage("updated");
 }

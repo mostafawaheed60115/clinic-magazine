@@ -22,6 +22,7 @@ import {
   resetStore,
   importBrandProducts,
   saveConsultationSettings,
+  saveEventSurvey,
 } from "./store.js";
 import {
   consultationUrl,
@@ -51,21 +52,7 @@ import {
 } from "./csv.js";
 import a from "./styles/admin.module.css";
 import { adminEventsPage, bindAdminEvents } from "./events.js";
-
-let dirty = false;
-export const isDirty = () => dirty;
-export const markClean = () => {
-  dirty = false;
-};
-const setDirty = (value) => {
-  dirty = value;
-};
-export async function mayLeave() {
-  if (!dirty) return true;
-  const leave = await ask(t("discardQuestion"), t("discardText"), t("discard"));
-  if (leave) dirty = false;
-  return leave;
-}
+import { setDirty } from "./navigation-state.js";
 const labelFor = (collection) =>
   collection === "companies" ? "brands" : collection;
 const fileName = (value) =>
@@ -93,12 +80,17 @@ function sidebar(route, authState) {
 function overview(data, authState) {
   const reset =
     authState.mode === "demo" ? button(t("reset"), 'id="reset-demo"') : "";
+  const productCounts = new Map();
+  for (const product of data.products) {
+    productCounts.set(
+      product.company_id,
+      (productCounts.get(product.company_id) || 0) + 1,
+    );
+  }
   const brandRows = data.companies
     .slice(0, 4)
     .map((brand) => {
-      const productCount = data.products.filter(
-        (product) => product.company_id === brand.id,
-      ).length;
+      const productCount = productCounts.get(brand.id) || 0;
       return `<li><span class="${a.brandDot}" aria-hidden="true">${esc((nameOf(brand) || "?").slice(0, 1))}</span><span class="${a.overviewBrandName}"><bdi>${esc(nameOf(brand))}</bdi><small dir="ltr">${esc(brand.name_en || "")}</small></span><span class="${a.overviewBrandCount}">${number(productCount)} ${t("products")}</span><a class="${s.compactButton}" href="#/admin/companies/edit/${encodeURIComponent(brand.id)}">${t("manage")}${arrow()}</a></li>`;
     })
     .join("");
@@ -119,7 +111,20 @@ function list(data, route, c, users = []) {
     8,
   );
   const isBrands = c === "companies";
-  return `<div class="${a.head}"><div><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t(labelFor(c))}</h1><p>${number(page.total)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/${c}/new">${icon("plus")}${t("add")}</a></div><div class="${a.listToolbar}">${searchBox(q, c === "products" ? "searchProducts" : "searchBrands")}<span class="${a.listHint}">${isBrands ? t("brandToolsHint") : t("manageText")}</span></div><p id="admin-error" class="${s.error}" role="alert"></p>${page.total ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t(labelFor(c))}"><table class="${a.table}"><thead><tr><th scope="col">${t(locale === "ar" ? "nameAr" : "nameEn")}</th><th scope="col">${t(c === "products" ? "finalPrice" : c === "companies" ? "products" : "brand")}</th><th scope="col">${t("actions")}</th></tr></thead><tbody>${page.items.map((item) => `<tr><td><div class="${a.imageCell}">${c !== "companies" ? image(item.img_url || item.img_link, nameOf(item)) : `<span class="${a.brandDot}">${esc((nameOf(item) || "?").slice(0, 1))}</span>`}<span><bdi>${esc(nameOf(item))}</bdi><small dir="ltr">${esc(item.name_en)}</small>${isBrands && item.is_exclusive ? `<em class="${a.exclusiveStatus}">${t("exclusiveBadge")}</em>` : ""}</span></div></td><td>${c === "products" ? money(item.final_price) : c === "companies" ? number(data.products.filter((p) => p.company_id === item.id).length) : `<bdi>${esc(nameOf(data.companies.find((b) => b.id === item.company_id)))}</bdi>`}</td><td><div class="${a.tableActions}"><a class="${s.iconButton}" href="#/admin/${c}/edit/${encodeURIComponent(item.id)}" aria-label="${t("edit")}: ${esc(nameOf(item))}">${icon("edit")}</a><button type="button" class="${s.iconButton}" data-delete="${esc(item.id)}" aria-label="${t("delete")}: ${esc(nameOf(item))}">${icon("trash")}</button>${isBrands ? brandCsvActions(item) : ""}</div></td></tr>`).join("")}</tbody></table></div>${pagination(page.page, page.pages)}` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
+  const productCounts = isBrands ? new Map() : null;
+  if (productCounts) {
+    for (const product of data.products) {
+      productCounts.set(
+        product.company_id,
+        (productCounts.get(product.company_id) || 0) + 1,
+      );
+    }
+  }
+  const brandsById =
+    c === "offers"
+      ? new Map(data.companies.map((brand) => [brand.id, brand]))
+      : null;
+  return `<div class="${a.head}"><div><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t(labelFor(c))}</h1><p>${number(page.total)} ${t("results")}</p></div><a class="${s.button} ${s.primary}" href="#/admin/${c}/new">${icon("plus")}${t("add")}</a></div><div class="${a.listToolbar}">${searchBox(q, c === "products" ? "searchProducts" : "searchBrands")}<span class="${a.listHint}">${isBrands ? t("brandToolsHint") : t("manageText")}</span></div><p id="admin-error" class="${s.error}" role="alert"></p>${page.total ? `<div class="${a.tableWrap}" tabindex="0" role="region" aria-label="${t(labelFor(c))}"><table class="${a.table}"><thead><tr><th scope="col">${t(locale === "ar" ? "nameAr" : "nameEn")}</th><th scope="col">${t(c === "products" ? "finalPrice" : c === "companies" ? "products" : "brand")}</th><th scope="col">${t("actions")}</th></tr></thead><tbody>${page.items.map((item) => `<tr><td><div class="${a.imageCell}">${c !== "companies" ? image(item.img_url || item.img_link, nameOf(item)) : `<span class="${a.brandDot}">${esc((nameOf(item) || "?").slice(0, 1))}</span>`}<span><bdi>${esc(nameOf(item))}</bdi><small dir="ltr">${esc(item.name_en)}</small>${isBrands && item.is_exclusive ? `<em class="${a.exclusiveStatus}">${t("exclusiveBadge")}</em>` : ""}</span></div></td><td>${c === "products" ? money(item.final_price) : c === "companies" ? number(productCounts.get(item.id) || 0) : `<bdi>${esc(nameOf(brandsById.get(item.company_id)))}</bdi>`}</td><td><div class="${a.tableActions}"><a class="${s.iconButton}" href="#/admin/${c}/edit/${encodeURIComponent(item.id)}" aria-label="${t("edit")}: ${esc(nameOf(item))}">${icon("edit")}</a><button type="button" class="${s.iconButton}" data-delete="${esc(item.id)}" aria-label="${t("delete")}: ${esc(nameOf(item))}">${icon("trash")}</button>${isBrands ? brandCsvActions(item) : ""}</div></td></tr>`).join("")}</tbody></table></div>${pagination(page.page, page.pages)}` : empty(q ? "noResults" : "empty", q ? "noResultsText" : "emptyText")}`;
 }
 function userList(users, q) {
   const usernameOf = (user) => user.username || user.user || user.email || "";
@@ -170,7 +175,7 @@ function editor(data, route, c) {
 function consultationSettingsPage(settings) {
   const phoneField = (key, label, required = false) =>
     `<div class="${a.field}"><label for="${key}">${t(label)}</label><input id="${key}" name="${key}" type="tel" dir="ltr" ${required ? "required" : ""} autocomplete="tel" value="${esc(settings[key] || "")}" aria-describedby="${key}-error" /><span id="${key}-error" class="${s.error}"></span></div>`;
-  return `<div class="${a.head}"><h1 tabindex="-1">${t("contactSettings")}</h1><p>${t("contactSettingsText")}</p></div><form id="consultation-settings-form" class="${a.form} ${a.settingsForm}" novalidate data-revision="${settings.revision}">${phoneField("whatsapp_phone", "consultationPhone", true)}${phoneField("customer_service_phone", "customerServicePhone")}${phoneField("contact_phone", "contactPhone")}<p id="consultation-settings-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}">${t("save")}</button><a class="${s.button} ${s.secondary}" href="${esc(consultationUrl(settings.whatsapp_phone))}" target="_blank" rel="noopener noreferrer">${t("medicalConsultation")}${arrow()}</a></div></form>`;
+  return `<div class="${a.head}"><h1 tabindex="-1">${t("contactSettings")}</h1><p>${t("contactSettingsText")}</p></div><form id="consultation-settings-form" class="${a.form} ${a.settingsForm}" novalidate data-revision="${settings.revision}">${phoneField("whatsapp_phone", "consultationPhone", true)}${phoneField("telesales_whatsapp_phone", "telesalesWhatsappPhone", true)}${phoneField("complaints_phone", "complaintsPhone", true)}${phoneField("customer_service_phone", "customerServicePhone")}${phoneField("contact_phone", "contactPhone")}<p id="consultation-settings-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}">${t("save")}</button><a class="${s.button} ${s.secondary}" href="${esc(consultationUrl(settings.whatsapp_phone))}" target="_blank" rel="noopener noreferrer">${t("medicalConsultation")}${arrow()}</a></div></form>`;
 }
 function userEditor(users, route) {
   const edit = route.parts[2] === "edit";
@@ -648,7 +653,7 @@ export function bindAdmin(root, data, route, context) {
   const { signal, render, navigate, authState } = context;
   if (route.parts[1] === "images") bindBulkUploader(root, signal);
   if (route.parts[1] === "events")
-    bindAdminEvents(root, signal, render, navigate, setDirty);
+    bindAdminEvents(root, signal, render, setDirty);
   const settingsForm = root.querySelector("#consultation-settings-form");
   if (settingsForm) bindConsultationSettings(root, settingsForm, context);
   if (route.parts[1] === "companies") bindBrandCsv(root, data, signal, render);
@@ -715,7 +720,7 @@ function bindConsultationSettings(root, form, context) {
   form.addEventListener(
     "input",
     () => {
-      dirty = true;
+      setDirty(true);
     },
     { signal },
   );
@@ -729,6 +734,8 @@ function bindConsultationSettings(root, form, context) {
       const phones = {};
       for (const key of [
         "whatsapp_phone",
+        "telesales_whatsapp_phone",
+        "complaints_phone",
         "customer_service_phone",
         "contact_phone",
       ]) {
@@ -737,12 +744,17 @@ function bindConsultationSettings(root, form, context) {
         input.removeAttribute("aria-invalid");
         error.textContent = "";
         phones[key] = input.value.trim()
-          ? (key === "whatsapp_phone"
+          ? (["whatsapp_phone", "telesales_whatsapp_phone"].includes(key)
               ? normalizeWhatsappPhone
               : normalizeContactPhone)(input.value)
           : null;
         if (
-          (key === "whatsapp_phone" && !phones[key]) ||
+          ([
+            "whatsapp_phone",
+            "telesales_whatsapp_phone",
+            "complaints_phone",
+          ].includes(key) &&
+            !phones[key]) ||
           (input.value.trim() && !phones[key])
         ) {
           input.setAttribute("aria-invalid", "true");
@@ -757,7 +769,7 @@ function bindConsultationSettings(root, form, context) {
       submit.textContent = t("saving");
       try {
         await saveConsultationSettings(phones, Number(form.dataset.revision));
-        dirty = false;
+        setDirty(false);
         notify(t("saved"));
         await render({ focus: true });
       } catch (issue) {
@@ -815,7 +827,7 @@ function bindEditor(root, form, data, context) {
   form.addEventListener(
     "input",
     () => {
-      dirty = true;
+      setDirty(true);
     },
     { signal },
   );
@@ -844,7 +856,7 @@ function bindEditor(root, form, data, context) {
   form.querySelector("#field-image-file").addEventListener(
     "change",
     async (event) => {
-      dirty = true;
+      setDirty(true);
       const input = event.target;
       const file = input.files[0];
       if (!file) return;
@@ -990,7 +1002,7 @@ function bindEditor(root, form, data, context) {
         submit.textContent = t("saving");
         await saveItem(c, record, Number(form.dataset.revision));
         if (signal.aborted) return;
-        dirty = false;
+        setDirty(false);
         releasePrepared();
         uploadedImage = null;
         notify(t("saved"));
@@ -1015,7 +1027,7 @@ function bindUserEditor(root, form, users, context) {
   form.addEventListener(
     "input",
     () => {
-      dirty = true;
+      setDirty(true);
     },
     { signal },
   );
@@ -1056,7 +1068,7 @@ function bindUserEditor(root, form, users, context) {
             password,
             phone: values.phone.trim(),
           });
-        dirty = false;
+        setDirty(false);
         notify(t("userSaved"));
         navigate("#/admin/users");
       } catch (error) {
