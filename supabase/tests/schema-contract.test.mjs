@@ -54,6 +54,13 @@ const orderReliabilityMigration = await readFile(
   ),
   "utf8",
 );
+const reportIdentityMigration = await readFile(
+  new URL(
+    "../migrations/20260928134521_stable_order_report_identity.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 for (const table of ["users", "admin", "companies", "products", "offers"]) {
   assert.match(
@@ -209,6 +216,28 @@ assert.match(
 assert.match(
   orderReliabilityMigration,
   /drop function public\.place_order\(jsonb\)/,
+);
+assert.match(reportIdentityMigration, /add column product_identity_id uuid/);
+assert.match(reportIdentityMigration, /add column company_identity_id uuid/);
+assert.match(
+  reportIdentityMigration,
+  /new\.product_identity_id := coalesce\(\s*new\.product_id,/,
+);
+assert.match(
+  reportIdentityMigration,
+  /new\.company_identity_id := coalesce\(\s*new\.company_id,/,
+);
+assert.match(
+  reportIdentityMigration,
+  /group by\s+item\.product_identity_id,\s+item\.product_id,/,
+);
+assert.match(
+  reportIdentityMigration,
+  /group by\s+item\.company_identity_id,\s+item\.company_id,/,
+);
+assert.match(
+  reportIdentityMigration,
+  /group by order_row\.user_id, user_row\.name, user_row\.username/,
 );
 
 console.log("Clinic Supabase schema contract passed");

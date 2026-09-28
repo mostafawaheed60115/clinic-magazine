@@ -345,10 +345,18 @@ export async function updateOrderStatus(orderId, status, expectedRevision) {
 
 export async function readOrderReports(startDate, endDate) {
   await openStore();
-  const tx = db.transaction("orders", "readonly");
+  const tx = db.transaction(["orders", "products", "companies"], "readonly");
   const done = finished(tx);
-  const allOrders = await result(tx.objectStore("orders").getAll());
+  const [allOrders, catalogProducts, catalogCompanies] = await Promise.all([
+    result(tx.objectStore("orders").getAll()),
+    result(tx.objectStore("products").getAll()),
+    result(tx.objectStore("companies").getAll()),
+  ]);
   await done;
+  const productsById = new Map(catalogProducts.map((item) => [item.id, item]));
+  const companiesById = new Map(
+    catalogCompanies.map((item) => [item.id, item]),
+  );
   const { start: startsAt, end: endsAt } = reportTimeBounds(startDate, endDate);
   const orders = allOrders.filter((order) => {
     const createdAt = new Date(order.created_at).getTime();
@@ -385,27 +393,42 @@ export async function readOrderReports(startDate, endDate) {
       .slice(0, 10);
   };
   const uniqueItems = grouped(
-    (item) => `${item.product_id || "deleted"}:${item.product_name_en}`,
-    (item) => ({
-      product_id: item.product_id,
-      product_name_ar: item.product_name_ar,
-      product_name_en: item.product_name_en,
-      image_url: item.image_url,
-      quantity: 0,
-      orders: new Set(),
-      gross_item_subtotal: 0,
-    }),
+    (item) =>
+      item.product_id ||
+      `deleted:${JSON.stringify([
+        item.product_name_ar,
+        item.product_name_en,
+        item.company_name_ar,
+        item.company_name_en,
+      ])}`,
+    (item) => {
+      const product = productsById.get(item.product_id);
+      return {
+        product_id: item.product_id,
+        product_name_ar: product?.name_ar || item.product_name_ar,
+        product_name_en: product?.name_en || item.product_name_en,
+        image_url: product?.img_url || item.image_url,
+        quantity: 0,
+        orders: new Set(),
+        gross_item_subtotal: 0,
+      };
+    },
   );
   const brands = grouped(
-    (item) => `${item.company_id || "deleted"}:${item.company_name_en}`,
-    (item) => ({
-      company_id: item.company_id,
-      company_name_ar: item.company_name_ar,
-      company_name_en: item.company_name_en,
-      quantity: 0,
-      orders: new Set(),
-      gross_item_subtotal: 0,
-    }),
+    (item) =>
+      item.company_id ||
+      `deleted:${JSON.stringify([item.company_name_ar, item.company_name_en])}`,
+    (item) => {
+      const company = companiesById.get(item.company_id);
+      return {
+        company_id: item.company_id,
+        company_name_ar: company?.name_ar || item.company_name_ar,
+        company_name_en: company?.name_en || item.company_name_en,
+        quantity: 0,
+        orders: new Set(),
+        gross_item_subtotal: 0,
+      };
+    },
   );
   const clients = new Map();
   for (const order of orders) {

@@ -521,6 +521,99 @@ test("admin image library is keyboard-accessible and mobile-safe", async ({
   ).toBe(true);
 });
 
+test("order reports keep renamed products and brands in one ranking", async ({
+  page,
+}) => {
+  await english(page);
+  const report = await page.evaluate(async () => {
+    const auth = await import("/src/auth.js");
+    const store = await import("/src/store.js");
+    await auth.signIn("demo", "clinic");
+    const catalog = await store.readAll({ force: true });
+    const product = catalog.products[0];
+    const brand = catalog.companies.find(
+      (company) => company.id === product.company_id,
+    );
+
+    const firstOrder = await store.placeOrder(
+      [{ product_id: product.id, quantity: 2 }],
+      crypto.randomUUID(),
+    );
+    await auth.signOut();
+    await auth.signIn("admin", "clinic");
+    let status = await store.updateOrderStatus(
+      firstOrder.id,
+      "confirmed",
+      firstOrder.revision,
+    );
+    await store.updateOrderStatus(firstOrder.id, "fulfilled", status.revision);
+
+    const currentCatalog = await store.readAll({ force: true });
+    const currentProduct = currentCatalog.products.find(
+      (item) => item.id === product.id,
+    );
+    const currentBrand = currentCatalog.companies.find(
+      (item) => item.id === brand.id,
+    );
+    await store.saveItem(
+      "products",
+      {
+        ...currentProduct,
+        name_ar: "اسم منتج بعد التعديل",
+        name_en: "Renamed reporting product",
+      },
+      currentProduct.revision,
+    );
+    await store.saveItem(
+      "companies",
+      {
+        ...currentBrand,
+        name_ar: "اسم علامة بعد التعديل",
+        name_en: "Renamed reporting brand",
+      },
+      currentBrand.revision,
+    );
+
+    await auth.signOut();
+    await auth.signIn("demo", "clinic");
+    const secondOrder = await store.placeOrder(
+      [{ product_id: product.id, quantity: 1 }],
+      crypto.randomUUID(),
+    );
+    await auth.signOut();
+    await auth.signIn("admin", "clinic");
+    status = await store.updateOrderStatus(
+      secondOrder.id,
+      "confirmed",
+      secondOrder.revision,
+    );
+    await store.updateOrderStatus(secondOrder.id, "fulfilled", status.revision);
+
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Cairo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    return store.readAdminOrderReports("2000-01-01", today);
+  });
+
+  expect(report.top_selling_items).toHaveLength(1);
+  expect(report.top_selling_items[0]).toMatchObject({
+    product_name_en: "Renamed reporting product",
+    quantity: 3,
+    orders: 2,
+  });
+  expect(report.most_ordered_brands).toHaveLength(1);
+  expect(report.most_ordered_brands[0]).toMatchObject({
+    company_name_en: "Renamed reporting brand",
+    quantity: 3,
+    orders: 2,
+  });
+  expect(report.highest_purchase_clients).toHaveLength(1);
+  expect(report.highest_purchase_clients[0].fulfilled_orders).toBe(2);
+});
+
 test("admin brand tools and navigation remain usable on mobile", async ({
   page,
 }) => {
