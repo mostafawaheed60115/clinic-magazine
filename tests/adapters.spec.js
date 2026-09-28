@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { reportRange, reportTimeBounds } from "../src/reporting.js";
 import {
   importRows,
   parseCsv,
@@ -41,6 +42,44 @@ test("CSV exports round-trip safely and preserve blank override fields", () => {
     discount: "",
     product_url: "",
     image_url: "https://example.com/image.webp",
+  });
+});
+
+test("report date bounds use full Cairo calendar days across DST", () => {
+  const summer = reportTimeBounds("2026-09-27", "2026-09-27");
+  expect(new Date(summer.start).toISOString()).toBe("2026-09-26T21:00:00.000Z");
+  expect(new Date(summer.end).toISOString()).toBe("2026-09-27T21:00:00.000Z");
+
+  const winter = reportTimeBounds("2026-01-01", "2026-01-01");
+  expect(new Date(winter.start).toISOString()).toBe("2025-12-31T22:00:00.000Z");
+  expect(new Date(winter.end).toISOString()).toBe("2026-01-01T22:00:00.000Z");
+});
+
+test("report ranges reject impossible calendar dates", () => {
+  const fallbackDate = new Date("2026-09-15T12:00:00.000Z");
+  const invalid = reportRange(
+    {
+      params: new URLSearchParams({
+        start_date: "2026-02-31",
+        end_date: "2026-03-01",
+      }),
+    },
+    fallbackDate,
+  );
+  expect(invalid).toEqual({ start_date: "2026-09-01", end_date: "2026-09-15" });
+
+  const validLeapDay = reportRange(
+    {
+      params: new URLSearchParams({
+        start_date: "2024-02-29",
+        end_date: "2024-02-29",
+      }),
+    },
+    fallbackDate,
+  );
+  expect(validLeapDay).toEqual({
+    start_date: "2024-02-29",
+    end_date: "2024-02-29",
   });
 });
 
@@ -236,6 +275,28 @@ test.describe("client adapters", () => {
     expect(result.mode).toBe("demo");
     expect(result.username).toBe("demo");
     expect(result.hasPlaintextPassword).toBe(false);
+  });
+
+  test("checkout retries with the same submission ID return one order", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const result = await page.evaluate(async () => {
+      const auth = await import("/src/auth.js");
+      const store = await import("/src/store.js");
+      await auth.signIn("demo", "clinic");
+      const submissionId = crypto.randomUUID();
+      const items = [{ product_id: "luma-1", quantity: 2 }];
+      const first = await store.placeOrder(items, submissionId);
+      const retry = await store.placeOrder(items, submissionId);
+      await auth.signIn("admin", "clinic");
+      return {
+        sameOrder: first.id === retry.id,
+        total: (await store.readAdminOrders()).total,
+      };
+    });
+
+    expect(result).toEqual({ sameOrder: true, total: 1 });
   });
 
   test("image preparation returns bounded WebP output and revokes preview URLs", async ({

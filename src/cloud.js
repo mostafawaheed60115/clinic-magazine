@@ -232,6 +232,18 @@ async function readEventRows(table, fields, sortColumn) {
   }
 }
 
+export async function readSettings() {
+  const { data, error } = await requireClient()
+    .from("app_settings")
+    .select(
+      "id, whatsapp_phone, telesales_whatsapp_phone, complaints_phone, customer_service_phone, contact_phone, revision",
+    )
+    .eq("id", 1)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function readCatalog({
   includeEvents = false,
   includeEventRequests = false,
@@ -379,6 +391,69 @@ export async function importBrandProducts(companyId, rows, dryRun = true) {
     p_company_id: companyId,
     p_rows: rows,
     p_dry_run: dryRun,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function placeOrder(items, submissionId) {
+  const { data, error } = await requireClient().rpc("place_order", {
+    p_items: items.map(({ product_id, quantity }) => ({
+      product_id,
+      quantity,
+    })),
+    p_submission_id: submissionId,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function readAdminOrders(page = 1, pageSize = 25) {
+  const requestedPage = Math.max(1, Math.floor(Number(page) || 1));
+  const safePageSize = Math.max(1, Math.floor(Number(pageSize) || 25));
+  const fetchPage = (currentPage) => {
+    const from = (currentPage - 1) * safePageSize;
+    return requireClient()
+      .from("orders")
+      .select(
+        "id, user_id, customer_name, customer_username, status, subtotal, revision, created_at, order_items(id, product_id, company_id, product_name_ar, product_name_en, company_name_ar, company_name_en, image_url, unit_price, quantity, line_total)",
+        { count: "exact" },
+      )
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, from + safePageSize - 1);
+  };
+  let result = await fetchPage(requestedPage);
+  if (result.error) throw result.error;
+  const total = result.count || 0;
+  const lastPage = Math.max(1, Math.ceil(total / safePageSize));
+  const currentPage = Math.min(requestedPage, lastPage);
+  if (currentPage !== requestedPage) {
+    result = await fetchPage(currentPage);
+    if (result.error) throw result.error;
+  }
+  return {
+    items: result.data || [],
+    total,
+    page: currentPage,
+    pageSize: safePageSize,
+  };
+}
+
+export async function readAdminOrderReports(startDate, endDate) {
+  const { data, error } = await requireClient().rpc("get_admin_order_reports", {
+    p_start_date: startDate,
+    p_end_date: endDate,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function updateOrderStatus(orderId, status, expectedRevision) {
+  const { data, error } = await requireClient().rpc("update_order_status", {
+    p_order_id: orderId,
+    p_status: status,
+    p_expected_revision: expectedRevision,
   });
   if (error) throw error;
   return data;

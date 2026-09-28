@@ -6,16 +6,18 @@ PRODUCT.md records the user-approved requirements including the 2026-09-20 authe
 
 ## Canonical UI Map
 
-| Capability     | Canonical owner               | Source of truth | Allowed variants       | Verification           |
-| -------------- | ----------------------------- | --------------- | ---------------------- | ---------------------- |
-| Select/Listbox | src/admin.js field builder    | UX-CONTRACT.md  | Native OS popup        | tests/magazine.spec.js |
-| Form           | src/admin.js editor           | UX-CONTRACT.md  | Create and edit        | tests/magazine.spec.js |
-| Scrollbar      | src/styles/tokens.css         | DESIGN.md       | Global baseline        | tests/magazine.spec.js |
-| Toast          | src/ui.js notify              | UX-CONTRACT.md  | Success and info       | tests/magazine.spec.js |
-| CRUD           | src/store.js and src/admin.js | PRODUCT.md      | Three collections plus bulk product import | tests/magazine.spec.js |
-| CSV import/export | src/csv.js and import_brand_products RPC | PRODUCT.md | Per-brand product export, template, preview/apply | tests/adapters.spec.js |
-| Image library  | src/admin.js bulk uploader | PRODUCT.md | Bounded concurrent upload, copyable URLs, mapping CSV | tests/magazine.spec.js |
-| Dialog         | src/ui.js ask                 | UX-CONTRACT.md  | Delete, reset, discard | tests/magazine.spec.js |
+| Capability        | Canonical owner                           | Source of truth | Allowed variants                                                   | Verification                                    |
+| ----------------- | ----------------------------------------- | --------------- | ------------------------------------------------------------------ | ----------------------------------------------- |
+| Select/Listbox    | src/admin.js field builder                | UX-CONTRACT.md  | Native OS popup                                                    | tests/magazine.spec.js                          |
+| Form              | src/admin.js editor                       | UX-CONTRACT.md  | Create and edit                                                    | tests/magazine.spec.js                          |
+| Scrollbar         | src/styles/tokens.css                     | DESIGN.md       | Global baseline                                                    | tests/magazine.spec.js                          |
+| Toast             | src/ui.js notify                          | UX-CONTRACT.md  | Success and info                                                   | tests/magazine.spec.js                          |
+| CRUD              | src/store.js and src/admin.js             | PRODUCT.md      | Three collections plus bulk product import                         | tests/magazine.spec.js                          |
+| CSV import/export | src/csv.js and import_brand_products RPC  | PRODUCT.md      | Per-brand product export, template, preview/apply                  | tests/adapters.spec.js                          |
+| Image library     | src/admin.js bulk uploader                | PRODUCT.md      | Bounded concurrent upload, copyable URLs, mapping CSV              | tests/magazine.spec.js                          |
+| Dialog            | src/ui.js ask                             | UX-CONTRACT.md  | Delete, reset, discard                                             | tests/magazine.spec.js                          |
+| Cart              | src/cart.js and src/main.js               | PRODUCT.md      | Session-scoped, per-account cart and no-payment order confirmation | tests/magazine.spec.js                          |
+| Orders/reports    | src/store.js, src/cloud.js and admin RPCs | PRODUCT.md      | Admin status lifecycle and Cairo-date fulfilled-order summaries    | tests/magazine.spec.js, tests/reporting.spec.js |
 
 ## Flows
 
@@ -24,6 +26,8 @@ Initial route is sign-in for unauthenticated visitors; direct protected links re
 ## Data and storage
 
 The exclusive brand flag is stored on `companies` and defaults to false. The consultation number is held in a singleton `app_settings` row; active members may read it and only admins may update it. Revision checks protect concurrent settings edits. The WhatsApp link is built from a validated international phone number and a fixed, encoded Arabic message.
+
+The cart is held in `sessionStorage` under the signed-in account ID, rechecks current product availability and price at submission, and is cleared after a successful order or sign-out. Order placement is one authenticated transaction; clients can read only their own orders, and only admins can advance order status or query aggregate order reports. Product, brand and buyer snapshots preserve order history. Reports use the order's placement timestamp interpreted in Africa/Cairo and include fulfilled orders only; gross totals sum product line subtotals, with no tax, shipping or fees. Login-rate and city-distribution reports remain out of scope until the login-event source/retention and city data source are approved.
 
 Supabase owns production companies, products, offers, users, admin membership, and catalog images. RLS denies anonymous catalog access and authorizes active members to read; only admins may write catalog content or upload to the `clinic-images` Storage bucket. Company parent and product/offer foreign keys have indexes. Revision checks prevent stale overwrites. Referenced companies cannot be deleted. No plaintext application password columns. Failed upload or database write preserves the editor with an actionable error; saving must not report success until the link is persisted. IndexedDB exists only in explicitly selected demo mode and never substitutes for failed Supabase calls.
 
@@ -40,5 +44,7 @@ Delete, disable-account and demo-only reset require app-owned dialogs naming con
 ## States and accessibility
 
 The exclusive directory supports search, pagination, and a distinct empty state. Product table rows preserve complete images with `object-fit: contain`, maintain semantic column headers, and scroll horizontally inside a labeled region on narrow screens. The consultation link is a named, keyboard-focusable external anchor and stays off login screens.
+
+Product detail and table actions add products to the session cart. The cart uses a native modal dialog with item thumbnails, quantity controls, subtotal and an order-submission state; it adds no checkout form fields and clearly states that online payment is not collected. Submission failure keeps the cart intact; success clears it and presents a localized confirmation. Admin order status controls are accessible native selects; fulfillment is the terminal fulfilled state used by commercial reports.
 
 Initial session check, login errors, no records, no results, image fallback, unknown route, upload/network failure and conflict use localized messages and recovery controls. Dialogs restore focus; route navigation focuses heading. Semantic links/buttons, keyboard controls, reduced motion, localized EGP/number formatting. Demo notice appears only in explicit preview mode. Login remains accessible at narrow widths; no catalog data is fetched before membership is confirmed.

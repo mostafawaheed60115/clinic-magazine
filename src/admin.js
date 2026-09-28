@@ -23,6 +23,8 @@ import {
   importBrandProducts,
   saveConsultationSettings,
   saveEventSurvey,
+  readAdminOrders,
+  updateOrderStatus,
 } from "./store.js";
 import {
   consultationUrl,
@@ -53,6 +55,7 @@ import {
 import a from "./styles/admin.module.css";
 import { adminEventsPage, bindAdminEvents } from "./events.js";
 import { setDirty } from "./navigation-state.js";
+import { reportRange } from "./reporting.js";
 const labelFor = (collection) =>
   collection === "companies" ? "brands" : collection;
 const fileName = (value) =>
@@ -65,16 +68,31 @@ const field = (key, label, value = "", options = {}) => {
   const id = `field-${key}`;
   return `<div class="${a.field} ${options.full ? a.full : ""}"><label for="${id}">${t(label)}</label><input id="${id}" name="${key}" value="${esc(value)}" type="${options.type || "text"}" ${options.required ? "required" : ""} ${options.dir ? `dir="${options.dir}"` : ""} ${options.extra || ""} aria-describedby="${id}-error" /><span class="${s.error}" id="${id}-error"></span></div>`;
 };
-const selectField = (key, label, options, value = "", required = true) =>
-  `<div class="${a.field}"><label for="field-${key}">${t(label)}</label><select id="field-${key}" name="${key}" ${required ? "required" : ""} aria-describedby="field-${key}-error">${options.map(([v, l]) => `<option value="${esc(v)}" ${v === value ? "selected" : ""}>${esc(l)}</option>`).join("")}</select><span id="field-${key}-error" class="${s.error}"></span></div>`;
+const selectField = (
+  key,
+  label,
+  options,
+  value = "",
+  required = true,
+  config = {},
+) => {
+  const id = config.id || `field-${key}`;
+  const errorId = `${id}-error`;
+  const describedBy =
+    config.showError === false ? "" : `aria-describedby="${errorId}"`;
+  const labelText = config.labelText ? esc(config.labelText) : t(label);
+  return `<div class="${a.field} ${config.fieldClass || ""}"><label class="${config.labelClass || ""}" for="${esc(id)}">${labelText}</label><select id="${esc(id)}" name="${esc(config.name || key)}" class="${config.controlClass || ""}" ${required ? "required" : ""} ${config.extra || ""} ${describedBy}>${options.map(([optionValue, optionLabel]) => `<option value="${esc(optionValue)}" ${optionValue === value ? "selected" : ""}>${t(optionLabel)}</option>`).join("")}</select>${config.showError === false ? "" : `<span id="${esc(errorId)}" class="${s.error}"></span>`}</div>`;
+};
 
 function sidebar(route, authState) {
   const nav = [
     ...collections,
-    ...(authState.isAdmin ? ["events", "images", "settings", "users"] : []),
+    ...(authState.isAdmin
+      ? ["orders", "reports", "events", "images", "settings", "users"]
+      : []),
   ];
   const navigation = (className) =>
-    `<nav class="${className}" aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "users" ? "user" : c === "images" ? "image" : c === "settings" ? "phone" : c === "events" ? "calendar" : "grid")}${esc(c === "images" ? t("imageLibrary") : c === "settings" ? t("contactSettings") : t(labelFor(c)))}</a>`).join("")}</nav>`;
+    `<nav class="${className}" aria-label="${t("admin")}"><a href="#/admin" ${!route.parts[1] ? 'aria-current="page"' : ""}>${icon("grid")}${t("overview")}</a>${nav.map((c) => `<a href="#/admin/${c}" ${route.parts[1] === c ? 'aria-current="page"' : ""}>${icon(c === "products" ? "bag" : c === "orders" ? "bag" : c === "reports" ? "grid" : c === "users" ? "user" : c === "images" ? "image" : c === "settings" ? "phone" : c === "events" ? "calendar" : "grid")}${esc(c === "images" ? t("imageLibrary") : c === "settings" ? t("contactSettings") : t(labelFor(c)))}</a>`).join("")}</nav>`;
   return `<aside class="${a.sidebar}"><div class="${a.sidebarBrand}"><span class="${a.sidebarMark}"><img src="/assets/clinic-logo-transparent.png" alt="" width="79" height="79" /></span><div><strong>Clinic</strong><small>${t("admin")}</small></div><details class="${a.mobileNav}"><summary aria-label="${t("adminMenu")}">${icon("grid")}<span>${t("adminMenu")}</span></summary>${navigation(a.mobileNavMenu)}</details></div>${navigation(a.desktopNav)}<div class="${a.sidebarFoot}"><small>${authState.mode === "demo" ? t("localOnly") : t("cloudManaged")}</small>${button(t("signOut"), 'id="app-sign-out"', "ghost")}</div></aside>`;
 }
 function overview(data, authState) {
@@ -237,32 +255,170 @@ function importErrorMessage(error) {
     return `${t("importRows")} ${number(error.row)}: ${t(key)}`;
   return key ? t(key) : error?.message || t("importFailed");
 }
+
+const orderStatusKey = {
+  placed: "orderPlaced",
+  confirmed: "orderConfirmed",
+  fulfilled: "orderFulfilled",
+  cancelled: "orderCancelled",
+};
+
+function orderStatusLabel(status) {
+  return t(orderStatusKey[status] || "orderPlaced");
+}
+
+function orderDate(value) {
+  try {
+    return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Africa/Cairo",
+    }).format(new Date(value));
+  } catch {
+    return "—";
+  }
+}
+
+function orderItems(order) {
+  const items = order.order_items || order.items || [];
+  if (!items.length) return "—";
+  return `<details class="${a.orderDetails}"><summary>${number(items.length)} ${t("orderItemsCount")}</summary><ul>${items
+    .map((item) => {
+      const name =
+        locale === "ar"
+          ? item.product_name_ar || item.product_name_en
+          : item.product_name_en || item.product_name_ar;
+      return `<li><span class="${a.orderItemImage}">${image(item.image_url, "")}</span><span class="${a.orderItemName}"><bdi>${esc(name)}</bdi><small>${number(item.quantity)} × ${money(item.unit_price)}</small></span><strong><bdi>${money(item.line_total)}</bdi></strong></li>`;
+    })
+    .join("")}</ul></details>`;
+}
+
+function nextOrderStatuses(status) {
+  if (status === "placed") return ["confirmed", "cancelled"];
+  if (status === "confirmed") return ["fulfilled", "cancelled"];
+  return [];
+}
+
+function orderStatusControl(order) {
+  const transitions = nextOrderStatuses(order.status);
+  if (!transitions.length)
+    return `<span class="${a.orderStatus} ${a[`orderStatus_${order.status}`] || ""}">${orderStatusLabel(order.status)}</span>`;
+  const id = `order-status-${esc(order.id)}`;
+  return selectField(
+    `order-status-${order.id}`,
+    "updateOrderStatus",
+    [order.status, ...transitions].map((status) => [
+      status,
+      orderStatusKey[status] || "orderPlaced",
+    ]),
+    order.status,
+    false,
+    {
+      id,
+      name: `order-status-${order.id}`,
+      labelText: `${t("updateOrderStatus")}: ${t("orderRef")} ${order.id.slice(0, 8)}`,
+      fieldClass: a.orderStatusField,
+      controlClass: a.orderStatusSelect,
+      labelClass: s.srOnly,
+      showError: false,
+      extra: `data-order-status="${esc(order.id)}" data-revision="${Number(order.revision) || 1}" data-current-status="${esc(order.status)}"`,
+    },
+  );
+}
+
+function ordersPage(data) {
+  const page = data.adminOrders || {
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: 25,
+  };
+  const pages = Math.max(1, Math.ceil(page.total / page.pageSize));
+  const rows = page.items
+    .map(
+      (order) =>
+        `<tr><td><strong><bdi>#${esc(order.id.slice(0, 8).toUpperCase())}</bdi></strong><small>${orderDate(order.created_at)}</small></td><td><bdi>${esc(order.customer_name)}</bdi><small dir="ltr">@${esc(order.customer_username)}</small></td><td class="${a.orderTotal}"><bdi>${money(order.subtotal)}</bdi></td><td>${orderStatusControl(order)}</td><td>${orderItems(order)}</td></tr>`,
+    )
+    .join("");
+  return `<div class="${a.head}"><div><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t("orders")}</h1><p>${t("orderManagementText")}</p></div><a class="${s.button} ${s.secondary}" href="#/admin/reports">${t("reports")}${arrow()}</a></div><p id="orders-error" class="${s.error}" role="alert"></p>${rows ? `<p class="${a.listHint}">${number(page.total)} ${t("orders")}</p><div class="${a.tableWrap}" role="region" tabindex="0" aria-label="${t("orders")}"><table class="${a.table} ${a.ordersTable}"><thead><tr><th scope="col">${t("orderRef")}</th><th scope="col">${t("orderCustomer")}</th><th scope="col">${t("orderTotal")}</th><th scope="col">${t("updateOrderStatus")}</th><th scope="col">${t("orderContents")}</th></tr></thead><tbody>${rows}</tbody></table></div>${pagination(page.page, pages)}` : empty("noOrders", "noOrdersText")}`;
+}
+
+function reportTable({
+  title,
+  description,
+  rows,
+  headings,
+  renderRow,
+  tableLabel,
+}) {
+  return `<section class="${a.reportSection}"><header><div><h2>${title}</h2>${description ? `<p>${description}</p>` : ""}</div></header>${rows.length ? `<div class="${a.reportTableWrap}" role="region" tabindex="0" aria-label="${tableLabel}"><table class="${a.table} ${a.reportTable}"><thead><tr>${headings.map((heading) => `<th scope="col">${heading}</th>`).join("")}</tr></thead><tbody>${rows.map(renderRow).join("")}</tbody></table></div>` : `<p class="${a.reportEmpty}">${t("noReportData")}</p>`}</section>`;
+}
+
+function reportItemRow(item) {
+  const name =
+    locale === "ar"
+      ? item.product_name_ar || item.product_name_en
+      : item.product_name_en || item.product_name_ar;
+  return `<tr><td><div class="${a.reportIdentity}"><span class="${a.reportImage}">${image(item.image_url, "")}</span><bdi>${esc(name)}</bdi></div></td><td>${number(item.quantity)}</td><td>${number(item.orders)}</td><td><bdi>${money(item.gross_item_subtotal)}</bdi></td></tr>`;
+}
+
+function reportBrandRow(brand) {
+  const name =
+    locale === "ar"
+      ? brand.company_name_ar || brand.company_name_en
+      : brand.company_name_en || brand.company_name_ar;
+  return `<tr><td><bdi>${esc(name)}</bdi></td><td>${number(brand.quantity)}</td><td>${number(brand.orders)}</td><td><bdi>${money(brand.gross_item_subtotal)}</bdi></td></tr>`;
+}
+
+function reportClientRow(client) {
+  return `<tr><td><span class="${a.reportClient}"><bdi>${esc(client.customer_name)}</bdi><small dir="ltr">@${esc(client.customer_username)}</small></span></td><td>${number(client.fulfilled_orders)}</td><td><bdi>${money(client.gross_item_subtotal)}</bdi></td></tr>`;
+}
+
+function reportsPage(data, route) {
+  const range = reportRange(route);
+  const report = data.orderReports || {};
+  const financial = report.financial || {};
+  return `<div class="${a.head}"><div><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t("reports")}</h1><p>${t("reportsIntro")}</p></div><a class="${s.button} ${s.secondary}" href="#/admin/orders">${t("orders")}${arrow()}</a></div><form id="order-report-range" class="${a.reportControls}" novalidate><strong>${t("reportInterval")}</strong><div><label for="report-start-date">${t("startDate")}</label><input id="report-start-date" type="date" name="start_date" value="${esc(range.start_date)}" required aria-describedby="report-start-error"/><span id="report-start-error" class="${s.error}"></span></div><div><label for="report-end-date">${t("endDate")}</label><input id="report-end-date" type="date" name="end_date" value="${esc(range.end_date)}" required aria-describedby="report-end-error"/><span id="report-end-error" class="${s.error}"></span></div><button class="${s.button} ${s.primary}" type="submit">${t("applyReportRange")}</button></form><p class="${a.reportNote}">${t("reportBasisNote")}</p><div class="${a.reportMetrics}"><section class="${a.reportMetric}"><span>${t("fulfilledOrders")}</span><strong>${number(financial.fulfilled_orders)}</strong></section><section class="${a.reportMetric}"><span>${t("grossSales")}</span><strong><bdi>${money(financial.gross_item_subtotal)}</bdi></strong></section><section class="${a.reportMetric}"><span>${t("averageOrderValue")}</span><strong><bdi>${money(financial.average_order_subtotal)}</bdi></strong></section></div><div class="${a.reportSections}">${reportTable({ title: t("topSellingItems"), rows: report.top_selling_items || [], headings: [t("product"), t("itemsSold"), t("orderCount"), t("grossSubtotal")], renderRow: reportItemRow, tableLabel: t("topSellingItems") })}${reportTable({ title: t("mostOrderedBrands"), rows: report.most_ordered_brands || [], headings: [t("brand"), t("itemsSold"), t("orderCount"), t("grossSubtotal")], renderRow: reportBrandRow, tableLabel: t("mostOrderedBrands") })}${reportTable({ title: t("highestPurchaseClients"), rows: report.highest_purchase_clients || [], headings: [t("orderCustomer"), t("fulfilledOrders"), t("grossSubtotal")], renderRow: reportClientRow, tableLabel: t("highestPurchaseClients") })}</div>`;
+}
+
 export function adminPage(data, route, authState) {
   const c = route.parts[1];
   if (
     c &&
-    ![...collections, "users", "images", "settings", "events"].includes(c)
+    ![
+      ...collections,
+      "users",
+      "images",
+      "settings",
+      "events",
+      "orders",
+      "reports",
+    ].includes(c)
   )
     return notFound();
   const content = !c
     ? overview(data, authState)
     : c === "events"
       ? adminEventsPage(data, route)
-      : c === "settings"
-        ? route.parts[2]
-          ? notFound()
-          : consultationSettingsPage(data.settings)
-        : c === "images"
-          ? imageLibrary()
-          : c === "users"
+      : c === "orders"
+        ? ordersPage(data)
+        : c === "reports"
+          ? reportsPage(data, route)
+          : c === "settings"
             ? route.parts[2]
-              ? userEditor(authState.users || [], route)
-              : `${authState.usersError ? `<p id="admin-error" class="${s.error}" role="alert">${t("userError")} <button type="button" id="retry-users" class="${s.ghost}" onclick="this.dispatchEvent(new Event('clinic-retry-users'))">${t("retry")}</button></p>` : ""}${list(data, route, c, authState.users || [])}`
-            : route.parts[2]
-              ? ["new", "edit"].includes(route.parts[2])
-                ? editor(data, route, c)
-                : notFound()
-              : list(data, route, c);
+              ? notFound()
+              : consultationSettingsPage(data.settings)
+            : c === "images"
+              ? imageLibrary()
+              : c === "users"
+                ? route.parts[2]
+                  ? userEditor(authState.users || [], route)
+                  : `${authState.usersError ? `<p id="admin-error" class="${s.error}" role="alert">${t("userError")} <button type="button" id="retry-users" class="${s.ghost}" onclick="this.dispatchEvent(new Event('clinic-retry-users'))">${t("retry")}</button></p>` : ""}${list(data, route, c, authState.users || [])}`
+                : route.parts[2]
+                  ? ["new", "edit"].includes(route.parts[2])
+                    ? editor(data, route, c)
+                    : notFound()
+                  : list(data, route, c);
   const csvTools =
     c === "companies"
       ? `<input id="brand-import-file" type="file" accept=".csv,text/csv" hidden /><div id="brand-import-preview"></div>`
@@ -651,6 +807,10 @@ function bindBulkUploader(root, signal) {
 }
 export function bindAdmin(root, data, route, context) {
   const { signal, render, navigate, authState } = context;
+  if (route.parts[1] === "orders")
+    bindOrderStatus(root, signal, render, data.adminOrders?.items || []);
+  if (route.parts[1] === "reports")
+    bindReportRange(root, route, signal, navigate);
   if (route.parts[1] === "images") bindBulkUploader(root, signal);
   if (route.parts[1] === "events")
     bindAdminEvents(root, signal, render, setDirty);
@@ -711,6 +871,73 @@ export function bindAdmin(root, data, route, context) {
       authState.users = undefined;
       authState.usersError = false;
       await render();
+    },
+    { signal },
+  );
+}
+
+function bindOrderStatus(root, signal, render, orders) {
+  root.querySelectorAll("[data-order-status]").forEach((select) =>
+    select.addEventListener(
+      "change",
+      async () => {
+        const order = orders.find(
+          (item) => item.id === select.dataset.orderStatus,
+        );
+        const error = root.querySelector("#orders-error");
+        if (!order || !select.value || select.value === order.status) return;
+        const nextStatus = select.value;
+        select.disabled = true;
+        error.textContent = "";
+        try {
+          await updateOrderStatus(
+            order.id,
+            nextStatus,
+            Number(select.dataset.revision),
+          );
+          notify(t("orderStatusSaved"), "success");
+          await render({ focus: true });
+        } catch {
+          error.textContent = t("orderStatusError");
+          select.disabled = false;
+          select.value = order.status;
+        }
+      },
+      { signal },
+    ),
+  );
+}
+
+function bindReportRange(root, route, signal, navigate) {
+  const form = root.querySelector("#order-report-range");
+  if (!form) return;
+  form.addEventListener(
+    "submit",
+    (event) => {
+      event.preventDefault();
+      const start = form.elements.start_date;
+      const end = form.elements.end_date;
+      [start, end].forEach((field) => {
+        field.removeAttribute("aria-invalid");
+        root.querySelector(
+          `#report-${field.name.replace("_date", "")}-error`,
+        ).textContent = "";
+      });
+      if (!start.value || !end.value || start.value > end.value) {
+        const invalid =
+          !start.value || !end.value || start.value > end.value ? end : start;
+        invalid.setAttribute("aria-invalid", "true");
+        root.querySelector(
+          `#report-${invalid.name.replace("_date", "")}-error`,
+        ).textContent = t("reportDateError");
+        invalid.focus();
+        return;
+      }
+      const params = new URLSearchParams(route.params);
+      params.delete("page");
+      params.set("start_date", start.value);
+      params.set("end_date", end.value);
+      navigate(`#${route.path}?${params.toString()}`);
     },
     { signal },
   );

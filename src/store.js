@@ -3,12 +3,17 @@ import * as demoStore from "./demo-store.js";
 import {
   cloudConfigured,
   readCatalog,
+  readSettings as readSettingsRemote,
   saveCatalogItem,
   deleteCatalogItem,
   importBrandProducts as importBrandProductsRemote,
   saveConsultationSettings as saveConsultationSettingsRemote,
   saveEventSurvey as saveEventSurveyRemote,
   submitEventRequest as submitEventRequestRemote,
+  placeOrder as placeOrderRemote,
+  readAdminOrders as readAdminOrdersRemote,
+  readAdminOrderReports as readAdminOrderReportsRemote,
+  updateOrderStatus as updateOrderStatusRemote,
 } from "./cloud.js";
 import {
   normalizeWhatsappPhone,
@@ -89,6 +94,13 @@ export async function readAll({
   return promise;
 }
 
+export async function readSettings() {
+  await requireSession();
+  if (isDemoMode()) return demoStore.readSettings();
+  if (!hasCloudConfig()) throw unconfigured();
+  return readSettingsRemote();
+}
+
 export async function saveItem(collection, item, expectedRevision) {
   await requireSession();
   if (isDemoMode()) {
@@ -160,6 +172,58 @@ export async function submitEventRequest(request) {
   else await submitEventRequestRemote(request, userId);
   invalidateCatalogCache();
   channel?.postMessage("updated");
+}
+
+export async function placeOrder(items, submissionId) {
+  await requireSession();
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      submissionId || "",
+    )
+  ) {
+    const error = new Error("Invalid checkout submission ID");
+    error.code = "invalid_submission_id";
+    throw error;
+  }
+  const state = getAuthState();
+  const userId = state.user?.id;
+  if (!userId) throw new Error("A signed-in account is required");
+  if (isDemoMode())
+    return demoStore.placeOrder(items, userId, state.user, submissionId);
+  if (!hasCloudConfig()) throw unconfigured();
+  return placeOrderRemote(items, submissionId);
+}
+
+async function requireAdmin() {
+  await requireSession();
+  if (!getAuthState().isAdmin) {
+    const error = new Error("Administrator access is required");
+    error.code = "admin_required";
+    throw error;
+  }
+}
+
+export async function readAdminOrders(page = 1) {
+  await requireAdmin();
+  return isDemoMode()
+    ? demoStore.readOrders(page)
+    : readAdminOrdersRemote(page);
+}
+
+export async function readAdminOrderReports(startDate, endDate) {
+  await requireAdmin();
+  return isDemoMode()
+    ? demoStore.readOrderReports(startDate, endDate)
+    : readAdminOrderReportsRemote(startDate, endDate);
+}
+
+export async function updateOrderStatus(orderId, status, expectedRevision) {
+  await requireAdmin();
+  const result = isDemoMode()
+    ? await demoStore.updateOrderStatus(orderId, status, expectedRevision)
+    : await updateOrderStatusRemote(orderId, status, expectedRevision);
+  if (!isDemoMode()) channel?.postMessage("orders-updated");
+  return result;
 }
 
 export async function deleteItem(collection, id, revision) {

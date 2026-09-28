@@ -189,7 +189,7 @@ test("exclusive brands, product table and consultation settings work together", 
   await english(page);
   await page.goto("/#/brand/luma");
   await expect(page.getByRole("table")).toBeVisible();
-  await expect(page.getByRole("columnheader")).toHaveCount(5);
+  await expect(page.getByRole("columnheader")).toHaveCount(6);
   await expect(page.locator("main table tbody tr")).toHaveCount(8);
   expect(
     await page
@@ -353,6 +353,154 @@ test("direct /admin entry reaches the authenticated admin panel", async ({
   await page.locator("#login-form button[type=submit]").click();
   await expect(page.locator("aside")).toBeVisible();
   await expect(page.locator("h1")).toHaveText("نظرة عامة");
+});
+
+test("session cart places an order, fulfillment updates reports", async ({
+  page,
+}) => {
+  await english(page);
+  await page.evaluate(async () => {
+    const auth = await import("/src/auth.js");
+    await auth.signOut();
+    await auth.signIn("demo", "clinic");
+  });
+
+  await page.goto("/#/brand/luma");
+  await page.locator('[data-cart-add="luma-1"]').click();
+  await expect(page.locator("#cart-count")).toHaveText("1");
+  await page.goto("/#/product/luma-1");
+  await page.locator('[data-cart-add="luma-1"]').click();
+  await expect(page.locator("#cart-count")).toHaveText("2");
+
+  // A reload keeps the cart for this session while catalog data is fetched again.
+  await page.reload();
+  await expect(page.locator("#cart-count")).toHaveText("2");
+  await page.locator("#cart-open").click();
+  const cart = page.locator("#shopping-cart-dialog");
+  await expect(cart).toBeVisible();
+  const busyDismiss = await page.evaluate(() => {
+    const dialog = document.querySelector("#shopping-cart-dialog");
+    dialog.dataset.busy = "true";
+    const close = dialog.querySelector("[data-cart-close]");
+    close.disabled = true;
+    const event = new Event("cancel", { cancelable: true });
+    dialog.dispatchEvent(event);
+    const result = {
+      prevented: event.defaultPrevented,
+      remainsOpen: dialog.open,
+      closeDisabled: close.disabled,
+    };
+    dialog.dataset.busy = "false";
+    close.disabled = false;
+    return result;
+  });
+  expect(busyDismiss).toEqual({
+    prevented: true,
+    remainsOpen: true,
+    closeDisabled: true,
+  });
+  await cart.locator("[data-cart-increase='luma-1']").click();
+  await expect(cart.locator("output")).toHaveText("3");
+  await expect(cart.locator("[data-cart-increase='luma-1']")).toBeFocused();
+  await cart.locator("[data-cart-checkout]").click();
+  await expect(
+    cart.getByRole("heading", { name: "Your order was placed" }),
+  ).toBeVisible();
+  await cart.getByRole("button", { name: "Continue browsing" }).click();
+
+  await page.evaluate(async () => {
+    const auth = await import("/src/auth.js");
+    await auth.signOut();
+    await auth.signIn("admin", "clinic");
+  });
+  const clampedOrders = await page.evaluate(async () => {
+    const store = await import("/src/store.js");
+    return store.readAdminOrders(999);
+  });
+  expect(clampedOrders).toMatchObject({ page: 1, total: 1, pageSize: 25 });
+  expect(clampedOrders.items).toHaveLength(1);
+  await page.goto("/#/admin/orders");
+  await expect(page.getByRole("table").first().locator("tbody tr")).toHaveCount(
+    1,
+  );
+  await expect(page.getByRole("table").first()).toContainText(
+    "Hydrating serum",
+  );
+  const status = page.locator("[data-order-status]");
+  await status.selectOption("confirmed");
+  await expect(page.locator("[data-order-status]")).toHaveAttribute(
+    "data-current-status",
+    "confirmed",
+  );
+  await page.locator("[data-order-status]").selectOption("fulfilled");
+  await expect(page.getByText("Fulfilled", { exact: true })).toBeVisible();
+
+  await page.goto("/#/admin/reports");
+  const todayInCairo = await page.evaluate(() => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Cairo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const values = Object.fromEntries(
+      parts
+        .filter(({ type }) => type !== "literal")
+        .map(({ type, value }) => [type, value]),
+    );
+    const tomorrow = new Date(
+      Date.UTC(
+        Number(values.year),
+        Number(values.month) - 1,
+        Number(values.day) + 1,
+      ),
+    );
+    const next = Object.fromEntries(
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "UTC",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      })
+        .formatToParts(tomorrow)
+        .filter(({ type }) => type !== "literal")
+        .map(({ type, value }) => [type, value]),
+    );
+    return {
+      today: `${values.year}-${values.month}-${values.day}`,
+      tomorrow: `${next.year}-${next.month}-${next.day}`,
+    };
+  });
+  await page.locator("[name=start_date]").fill(todayInCairo.tomorrow);
+  await page.locator("[name=end_date]").fill(todayInCairo.today);
+  await page.getByRole("button", { name: "Apply dates" }).click();
+  await expect(page.locator("#report-end-error")).toContainText(
+    "Check the start and end dates.",
+  );
+  await page.locator("[name=start_date]").fill(todayInCairo.today);
+  await page.locator("[name=end_date]").fill(todayInCairo.today);
+  await page.getByRole("button", { name: "Apply dates" }).click();
+  await expect(page).toHaveURL(/start_date=.*end_date=/);
+  await expect(
+    page
+      .getByText("Fulfilled orders", { exact: true })
+      .locator("..")
+      .locator("strong"),
+  ).toHaveText("1");
+  await expect(
+    page.getByRole("heading", { name: "Top-selling items" }),
+  ).toBeVisible();
+  await expect(page.getByRole("table").nth(0)).toContainText("Hydrating serum");
+  await expect(page.getByRole("table").nth(0)).toContainText("3");
+  await expect(page.getByRole("table").nth(1)).toContainText("LUMA");
+  await expect(page.getByRole("table").nth(2)).toContainText("@demo");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("admin image library is keyboard-accessible and mobile-safe", async ({
@@ -664,7 +812,7 @@ test("empty catalogs, long Arabic names and safe text rendering", async ({
   await page.goto("/");
   await page.locator("#cover").waitFor();
   await page.evaluate(async () => {
-    const request = indexedDB.open("clinic-magazine", 3);
+    const request = indexedDB.open("clinic-magazine", 5);
     await new Promise((resolve) => {
       request.onsuccess = () => {
         const db = request.result;

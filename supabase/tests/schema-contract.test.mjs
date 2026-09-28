@@ -28,14 +28,28 @@ const eventsMigration = await readFile(
 );
 const eventRequestMigration = await readFile(
   new URL(
-    "../migrations/20260926121500_event_request_survey_and_telesales.sql",
+    "../migrations/20260927193913_event_request_survey_and_telesales.sql",
     import.meta.url,
   ),
   "utf8",
 );
 const readIndexesMigration = await readFile(
   new URL(
-    "../migrations/20260926133000_catalog_read_indexes.sql",
+    "../migrations/20260927193918_catalog_read_indexes.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
+const ordersMigration = await readFile(
+  new URL(
+    "../migrations/20260927205319_clinic_orders_and_reports.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
+const orderReliabilityMigration = await readFile(
+  new URL(
+    "../migrations/20260927210312_order_submission_idempotency.sql",
     import.meta.url,
   ),
   "utf8",
@@ -125,14 +139,8 @@ assert.match(eventRequestMigration, /user_id = \(select auth\.uid\(\)\)/);
 assert.match(eventRequestMigration, /survey\.is_open/);
 assert.match(eventRequestMigration, /company_names jsonb/);
 assert.match(eventRequestMigration, /pharmacist_training/);
-assert.match(
-  eventRequestMigration,
-  /event_requests_owner_or_admin_select/,
-);
-assert.match(
-  eventRequestMigration,
-  /event_requests_member_insert/,
-);
+assert.match(eventRequestMigration, /event_requests_owner_or_admin_select/);
+assert.match(eventRequestMigration, /event_requests_member_insert/);
 assert.match(
   eventRequestMigration,
   /alter table public\.event_requests enable row level security/,
@@ -145,5 +153,62 @@ for (const table of ["companies", "products", "offers"]) {
 }
 assert.match(readIndexesMigration, /event_surveys_started_at_id_idx/);
 assert.match(readIndexesMigration, /event_requests_submitted_at_id_idx/);
+for (const table of ["orders", "order_items"]) {
+  assert.match(
+    ordersMigration,
+    new RegExp(`create table public\\.${table}\\b`),
+  );
+  assert.match(
+    ordersMigration,
+    new RegExp(`alter table public\\.${table} enable row level security`),
+  );
+  assert.match(
+    ordersMigration,
+    new RegExp(`alter table public\\.${table} force row level security`),
+  );
+}
+assert.match(ordersMigration, /orders_owner_or_admin_select/);
+assert.match(ordersMigration, /order_items_owner_or_admin_select/);
+assert.match(
+  ordersMigration,
+  /create function public\.place_order\(p_items jsonb\)/,
+);
+assert.match(ordersMigration, /private\.is_active_member\(\)/);
+assert.match(ordersMigration, /for share/);
+assert.match(ordersMigration, /create function public\.update_order_status/);
+assert.match(
+  ordersMigration,
+  /create function public\.get_admin_order_reports/,
+);
+assert.match(ordersMigration, /order_row\.status = 'fulfilled'/);
+assert.match(ordersMigration, /'Africa\/Cairo'/);
+assert.match(
+  ordersMigration,
+  /revoke all on function public\.place_order\(jsonb\) from public, anon, authenticated/,
+);
+assert.match(
+  ordersMigration,
+  /grant execute on function public\.get_admin_order_reports\(date, date\)\s+to authenticated/,
+);
+assert.match(
+  orderReliabilityMigration,
+  /drop index if exists public\.order_items_order_id_idx/,
+);
+assert.match(
+  orderReliabilityMigration,
+  /create unique index orders_user_submission_id_idx/,
+);
+assert.match(
+  orderReliabilityMigration,
+  /create or replace function public\.place_order\([\s\S]*p_submission_id uuid/,
+);
+assert.match(
+  orderReliabilityMigration,
+  /on conflict \(user_id, submission_id\) do nothing/,
+);
+assert.match(
+  orderReliabilityMigration,
+  /drop function public\.place_order\(jsonb\)/,
+);
 
 console.log("Clinic Supabase schema contract passed");

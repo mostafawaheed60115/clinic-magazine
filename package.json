@@ -7,7 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "playwright test",
+    "test": "node --test supabase/tests/schema-contract.test.mjs && playwright test",
     "format": "prettier --write src tests *.json *.html *.js",
     "format:check": "prettier --check src tests *.json *.html *.js"
   },

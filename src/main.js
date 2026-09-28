@@ -1,6 +1,13 @@
 import "./styles/tokens.css";
 import { t, locale, setLocale, initLocale } from "./i18n.js";
-import { readAll, channel, invalidateCatalogCache } from "./store.js";
+import {
+  readAll,
+  readSettings,
+  readAdminOrders,
+  readAdminOrderReports,
+  channel,
+  invalidateCatalogCache,
+} from "./store.js";
 import {
   getAuthState,
   initAuth,
@@ -24,6 +31,14 @@ import { isDirty, mayLeave, markClean } from "./navigation-state.js";
 import { icon, arrow, hydrateImages, notify, s } from "./ui.js";
 import m from "./styles/magazine.module.css";
 import { consultationUrl, phoneUrl, telesalesUrl } from "./consultation.js";
+import {
+  bindCart,
+  cartCount,
+  cartDialog,
+  clearCart,
+  setCartAccount,
+} from "./cart.js";
+import { reportRange } from "./reporting.js";
 
 initLocale();
 const app = document.querySelector("#app");
@@ -79,13 +94,13 @@ function chrome(route, content, options = {}) {
     ? consultationUrl(options.settings?.whatsapp_phone)
     : "";
   const consultation = whatsappHref
-    ? `<a class="${m.consultationButton}" href="${whatsappHref}" target="_blank" rel="noopener noreferrer" aria-label="${t("medicalConsultation")}">${icon("whatsapp")}<span>${t("medicalConsultation")}</span></a>`
+    ? `<a class="${m.consultationButton} ${m.floatingContactButton}" href="${whatsappHref}" target="_blank" rel="noopener noreferrer" aria-label="${t("medicalConsultation")}">${icon("whatsapp")}<span>${t("medicalConsultation")}</span></a>`
     : "";
   const telesalesHref = !admin
     ? telesalesUrl(options.settings?.telesales_whatsapp_phone)
     : "";
   const telesalesButton = telesalesHref
-    ? `<a class="${m.telesalesButton}" href="${telesalesHref}" target="_blank" rel="noopener noreferrer" aria-label="${t("telesalesWhatsapp")}">${icon("whatsapp")}<span>${t("telesalesWhatsapp")}</span></a>`
+    ? `<a class="${m.telesalesButton} ${m.floatingContactButton}" href="${telesalesHref}" target="_blank" rel="noopener noreferrer" aria-label="${t("telesalesWhatsapp")}">${icon("whatsapp")}<span>${t("telesalesWhatsapp")}</span></a>`
     : "";
   const serviceHref = phoneUrl(options.settings?.customer_service_phone);
   const contactHref = phoneUrl(options.settings?.contact_phone);
@@ -94,7 +109,11 @@ function chrome(route, content, options = {}) {
     !admin && serviceHref
       ? `<a class="${m.serviceButton}" href="${serviceHref}" aria-label="${t("customerService")}">${icon("phone")}<span>${t("customerService")}</span></a>`
       : "";
-  return `<a class="${m.skip}" href="#main">${t("skip")}</a><header class="${m.header} ${admin ? m.adminHeader : ""}"><div class="${m.headerInner}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="145" height="145" /></a>${navigation}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a><button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></div></header><div class="${m.shell} ${options.keepSearch ? m.searchRender : ""}"><main id="main">${content}</main></div><footer class="${m.footer}"><div class="${m.footerInner}"><div class="${m.footerTop}"><div><p>${t("footerText")}</p>${novaAttribution()}</div><div class="${m.footerContact}">${contactHref ? `<a href="${contactHref}">${icon("phone")}${t("contactPhone")}: <bdi>${options.settings.contact_phone}</bdi></a>` : ""}${complaintsHref ? `<a href="${complaintsHref}">${icon("phone")}${t("complaintsPhone")}: <bdi>${options.settings.complaints_phone}</bdi></a>` : ""}<p>${icon("map")}${t("branch1")}: ${t("branch1Address")}</p><p>${icon("map")}${t("branch2")}: ${t("branch2Address")}</p></div>${admin ? "" : `<a class="${m.footerExploreLink}" href="#/brands">${t("exploreBrands")}${arrow()}</a>`}</div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span>${social}${admin ? "" : `<a href="#/admin">${t("admin")}</a>`}</div></div></footer}<div class="${m.floatingActions}">${consultation}${telesalesButton}${serviceButton}</div><div class="${m.demoNotice}">${authState.mode === "demo" ? t("demo") : ""}</div>`;
+  const cartControl =
+    !admin && options.cartData
+      ? `<button id="cart-open" class="${m.cartOpenButton}" type="button" aria-haspopup="dialog" aria-controls="shopping-cart-dialog" aria-label="${t("cart")} (${cartCount()})">${icon("bag")}<span>${t("cart")}</span><b id="cart-count" aria-live="polite">${cartCount()}</b></button>`
+      : "";
+  return `<a class="${m.skip}" href="#main">${t("skip")}</a><header class="${m.header} ${admin ? m.adminHeader : ""}"><div class="${m.headerInner}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="145" height="145" /></a>${navigation}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a>${cartControl}<button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></div></header><div class="${m.shell} ${options.keepSearch ? m.searchRender : ""}"><main id="main">${content}</main></div><footer class="${m.footer}"><div class="${m.footerInner}"><div class="${m.footerTop}"><div><p>${t("footerText")}</p><p>${t("footerTextOffers")}</p>${novaAttribution()}</div><div class="${m.footerContact}">${contactHref ? `<a href="${contactHref}">${icon("phone")}${t("contactPhone")}: <bdi>${options.settings.contact_phone}</bdi></a>` : ""}${complaintsHref ? `<a href="${complaintsHref}">${icon("phone")}${t("complaintsPhone")}: <bdi>${options.settings.complaints_phone}</bdi></a>` : ""}<p>${icon("map")}${t("branch1")}: ${t("branch1Address")}</p><p>${icon("map")}${t("branch2")}: ${t("branch2Address")}</p></div>${admin ? "" : `<a class="${m.footerExploreLink}" href="#/brands">${t("exploreBrands")}${arrow()}</a>`}</div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span>${social}${admin ? "" : `<a href="#/admin">${t("admin")}</a>`}</div></div></footer>${!admin && options.cartData ? cartDialog(options.cartData) : ""}<div class="${m.floatingActions}">${consultation}${telesalesButton}${serviceButton}</div><div class="${m.demoNotice}">${authState.mode === "demo" ? t("demo") : ""}</div>`;
 }
 
 function loading(content = t("sessionLoading")) {
@@ -161,6 +180,10 @@ export async function render(options = {}) {
   const includeEvents =
     page === "events" || (page === "admin" && route.parts[1] === "events");
   const includeEventRequests = page === "admin" && route.parts[1] === "events";
+  const includeAdminOrders = page === "admin" && route.parts[1] === "orders";
+  const includeAdminReports = page === "admin" && route.parts[1] === "reports";
+  const includeCompactAdminData = includeAdminOrders || includeAdminReports;
+  const dates = includeAdminReports ? reportRange(route) : null;
   // Fetch optional route code while the catalog request is in flight, keeping
   // admin-only editing and CSV utilities out of the initial public bundle.
   const pageModulePromise =
@@ -171,11 +194,25 @@ export async function render(options = {}) {
         : Promise.resolve(null);
   let data;
   try {
-    data =
-      options.keepSearch && cachedData
+    const catalogPromise = includeCompactAdminData
+      ? readSettings().then((settings) => ({ settings }))
+      : options.keepSearch && cachedData
         ? cachedData
-        : await readAll({ includeEvents, includeEventRequests });
-    cachedData = data;
+        : readAll({ includeEvents, includeEventRequests });
+    const [catalog, adminData] = await Promise.all([
+      catalogPromise,
+      includeAdminOrders
+        ? readAdminOrders(Number(route.params.get("page")) || 1)
+        : includeAdminReports
+          ? readAdminOrderReports(dates.start_date, dates.end_date)
+          : Promise.resolve(null),
+    ]);
+    data = {
+      ...catalog,
+      ...(includeAdminOrders ? { adminOrders: adminData } : {}),
+      ...(includeAdminReports ? { orderReports: adminData } : {}),
+    };
+    if (!includeCompactAdminData) cachedData = data;
   } catch {
     if (request !== version) return;
     app.innerHTML = chrome(
@@ -201,10 +238,12 @@ export async function render(options = {}) {
   app.innerHTML = chrome(route, content, {
     ...options,
     settings: data.settings,
+    cartData: data,
   });
   activeHash = location.hash || "#/offers";
   hydrateImages(app);
   bindChrome(signal);
+  if (page !== "admin") bindCart(app, data, signal);
   if (page === "offers") bindCarousel(app, data, signal, hydrateImages);
   if (page === "events") pageModule.bindEvents(app, signal, render);
   if (page === "admin")
@@ -446,6 +485,8 @@ channel?.addEventListener("message", () => {
 onAuthChange((next) => {
   const nextIdentity = next?.session?.user?.id || next?.user?.id || "";
   if (nextIdentity !== authIdentity) {
+    if (authIdentity && !nextIdentity) clearCart();
+    setCartAccount(nextIdentity);
     cachedData = null;
     invalidateCatalogCache();
     if (authState) authState.users = undefined;
@@ -459,11 +500,14 @@ initAuth()
   .then((next) => {
     authState = next || getAuthState();
     authIdentity = authState.session?.user?.id || authState.user?.id || "";
+    setCartAccount(authIdentity);
     authReady = true;
     scheduleRender();
   })
   .catch(() => {
     authState = getAuthState();
+    authIdentity = authState.session?.user?.id || authState.user?.id || "";
+    setCartAccount(authIdentity);
     authReady = true;
     scheduleRender();
   });
