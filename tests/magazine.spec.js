@@ -41,6 +41,33 @@ test("localization dictionaries have complete parity", () => {
   );
 });
 
+test("client footer omits the trade-magazine line while admin retains it", async ({
+  page,
+}) => {
+  await english(page);
+  await page.evaluate(async () => {
+    const auth = await import("/src/auth.js");
+    await auth.signIn("demo", "clinic");
+  });
+  await page.goto("/#/offers");
+  await expect(page.getByRole("contentinfo")).not.toContainText(
+    "Cosmetics trade magazine",
+  );
+  await expect(page.getByRole("contentinfo")).toContainText(
+    "Clinic offers magazine",
+  );
+
+  await page.evaluate(async () => {
+    const auth = await import("/src/auth.js");
+    await auth.signOut();
+    await auth.signIn("admin", "clinic");
+  });
+  await page.goto("/#/admin");
+  await expect(page.getByRole("contentinfo")).toContainText(
+    "Cosmetics trade magazine",
+  );
+});
+
 test("product CSV download retains Arabic and damaged uploads stop before preview", async ({
   page,
 }) => {
