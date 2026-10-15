@@ -71,6 +71,7 @@ export function brandsPage(data, route) {
       (x) => (!exclusiveOnly || x.is_exclusive) && matches(x, q),
     ),
     route,
+    40,
   );
   return `<div class="${m.pageHead}"><h1 tabindex="-1">${t(exclusiveOnly ? "exclusiveBrands" : "allBrands")}</h1><p>${t(exclusiveOnly ? "exclusiveIntro" : "brandIntro")}</p></div><div class="${m.toolbar}">${searchBox(q, "searchBrands")}<span class="${m.count}" role="status">${number(list.total)} ${t("results")}</span></div><div class="${m.brandGrid} ${m.directory}">${list.items.map(brandTile).join("")}</div>${list.total ? "" : empty(q ? "noResults" : exclusiveOnly ? "exclusiveEmpty" : "empty", q ? "noResultsText" : exclusiveOnly ? "exclusiveEmptyText" : "emptyText")}${pagination(list.page, list.pages)}`;
 }

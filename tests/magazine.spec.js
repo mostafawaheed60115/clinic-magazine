@@ -707,12 +707,31 @@ test("catalog search, pagination, history, unknown routes, fallback images", asy
   page,
 }) => {
   await english(page);
+  await page.evaluate(async () => {
+    const store = await import("/src/store.js");
+    for (let i = 1; i <= 32; i++) {
+      await store.saveItem(
+        "companies",
+        {
+          id: `extra-brand-${i}`,
+          name_en: `Extra Brand ${i}`,
+          name_ar: `علامة إضافية ${i}`,
+          phone: "",
+          logo_url: "",
+          is_exclusive: false,
+          tagline: "Extra brand",
+          style: 0,
+        },
+        0,
+      );
+    }
+  });
   await page.goto("/#/brands");
-  await expect(page.locator('main a[href^="#/brand/"]')).toHaveCount(8);
+  await expect(page.locator('main a[href^="#/brand/"]')).toHaveCount(40);
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page.locator('main a[href^="#/brand/"]')).toHaveCount(2);
   await page.goBack();
-  await expect(page.locator('main a[href^="#/brand/"]')).toHaveCount(8);
+  await expect(page.locator('main a[href^="#/brand/"]')).toHaveCount(40);
   await page.locator("#catalog-search").fill("luma");
   await expect(page.locator('main a[href^="#/brand/"]')).toHaveCount(1);
   await expect(page).toHaveURL(/q=luma/);

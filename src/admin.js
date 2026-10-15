@@ -123,12 +123,12 @@ function brandCsvActions(brand) {
 function list(data, route, c, users = []) {
   const q = route.params.get("q") || "";
   if (c === "users") return userList(users, q);
+  const isBrands = c === "companies";
   const page = paginate(
     data[c].filter((item) => matches(item, q)),
     route,
-    8,
+    isBrands ? 40 : 8,
   );
-  const isBrands = c === "companies";
   const productCounts = isBrands ? new Map() : null;
   if (productCounts) {
     for (const product of data.products) {
