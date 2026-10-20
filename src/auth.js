@@ -543,13 +543,24 @@ export async function updateUser(id, updates = {}) {
     updated = adminResponse(await invokeAdmin("edit", payload), "user");
   }
   if (updates.password !== undefined) {
-    await adminResponse(
-      await invokeAdmin("reset_password", {
-        userId: id,
-        password: updates.password,
-      }),
-      "userId",
-    );
+    try {
+      await adminResponse(
+        await invokeAdmin("reset_password", {
+          userId: id,
+          password: updates.password,
+        }),
+        "userId",
+      );
+    } catch (error) {
+      if (!updated) throw error;
+      const partial = authError(
+        "The profile was saved, but the password could not be reset",
+        "partial_update",
+      );
+      partial.updated = updated;
+      partial.cause = error;
+      throw partial;
+    }
   }
   return updated || { id };
 }

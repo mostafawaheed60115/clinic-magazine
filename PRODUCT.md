@@ -24,6 +24,8 @@ Arabic default with English switching. EGP prices. Username/password login prece
 
 Signed-in buyers can keep a per-account cart in the current browser session and submit an unpaid order without entering additional checkout details or using an online payment provider. Order items snapshot their product and brand names, image and authoritative unit price. Admins can move orders from placed to confirmed and then fulfilled, or cancel before fulfillment. Product, brand, client and financial reports are date-filtered by order placement date; only fulfilled orders count, and financial values are gross item subtotals without tax, shipping or fees. City distribution and login-rate reporting are not enabled until their data source and retention policy are confirmed.
 
+Signed-in buyers can save brands to a per-account favorites list from brand cards and browse or remove saved brands from a dedicated tab. Supabase stores ownership-protected favorites; explicit demo mode keeps separate local favorites for each demo account.
+
 ## Infrastructure Decisions
 
 The user confirmed the existing Supabase project online catalog (twllyczdtmitsupfvjgx) in Nova Solutions, and then explicitly deferred its proposed rename. Its public schema and Auth users were empty at inspection. User authorized an initial admin account; its supplied password must never be recorded in project docs/source. The `clinic-images` Storage bucket migration must be applied before live image uploads work. Never mistake local integration code or explicit preview mode for a verified live connection. All remote changes use the confirmed project.

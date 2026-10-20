@@ -25,8 +25,61 @@ export function novaAttribution({ withLogo = false } = {}) {
 export function wordmark(brand) {
   return `<span class="${m.wordmark}" data-style="${brand.style || 0}" dir="ltr">${brand.logo_url ? image(brand.logo_url, nameOf(brand)) : esc(brand.name_en)}</span>`;
 }
-function brandTile(brand) {
-  return `<a href="#/brand/${encodeURIComponent(brand.id)}" class="${m.brandTile}" aria-label="${esc(nameOf(brand))}"><span class="${m.brandIdentity}" dir="ltr">${brand.logo_url ? image(brand.logo_url, "", m.brandLogo) : ""}<strong dir="auto">${esc(nameOf(brand))}</strong></span>${brand.is_exclusive ? `<span class="${m.exclusiveBadge}">${t("exclusiveBadge")}</span>` : ""}</a>`;
+function favoriteButton(brand, data) {
+  const favorite = (data.favoriteCompanyIds || []).includes(brand.id);
+  const label = t(favorite ? "removeFavorite" : "addFavorite");
+  const disabled = data.favoriteError
+    ? ' disabled title="' + esc(t("favoritesError")) + '"'
+    : "";
+  return (
+    '<button type="button" class="' +
+    m.favoriteToggle +
+    '" data-favorite-toggle="' +
+    esc(brand.id) +
+    '" data-favorite-name="' +
+    esc(nameOf(brand)) +
+    '" aria-label="' +
+    esc(label + ": " + nameOf(brand)) +
+    '" aria-pressed="' +
+    String(favorite) +
+    '"' +
+    disabled +
+    ">" +
+    icon("heart") +
+    "</button>"
+  );
+}
+
+function brandTile(brand, data) {
+  const mark = brand.logo_url ? image(brand.logo_url, "", m.brandLogo) : "";
+  const exclusive = brand.is_exclusive
+    ? '<span class="' +
+      m.exclusiveBadge +
+      '">' +
+      t("exclusiveBadge") +
+      "</span>"
+    : "";
+  return (
+    '<article class="' +
+    m.brandTile +
+    '"><a href="#/brand/' +
+    encodeURIComponent(brand.id) +
+    '" class="' +
+    m.brandTileLink +
+    '" aria-label="' +
+    esc(nameOf(brand)) +
+    '"><span class="' +
+    m.brandIdentity +
+    '" dir="ltr">' +
+    mark +
+    '<strong dir="auto">' +
+    esc(nameOf(brand)) +
+    "</strong></span>" +
+    exclusive +
+    "</a>" +
+    favoriteButton(brand, data) +
+    "</article>"
+  );
 }
 function productTable(products, brand) {
   return `<p class="${m.tableScrollHint}">${t("tableScrollHint")}</p><div class="${m.productTableWrap}" role="region" tabindex="0" aria-label="${esc(t("products"))} — ${esc(nameOf(brand))}"><table class="${m.productTable}"><thead><tr><th scope="col">${t("product")}</th><th scope="col">${t("size")}</th><th scope="col">${t("quantity")}</th><th scope="col">${t("finalPrice")}</th><th scope="col">${t("details")}</th><th scope="col">${t("addToCart")}</th></tr></thead><tbody>${products.map((product) => `<tr><td><a class="${m.productTableIdentity}" href="#/product/${encodeURIComponent(product.id)}"><span class="${m.productTableImage}">${image(product.img_url, nameOf(product))}</span><span class="${m.productTableName}"><strong><bdi>${esc(nameOf(product))}</bdi></strong><small dir="ltr">${esc(product.name_en || "")}</small>${product.discount != null ? `<span class="${m.tableDiscount}">${number(product.discount)}% ${t("discount")}</span>` : ""}</span></a></td><td><bdi>${number(product.size_value)} ${t(product.size_unit)}</bdi></td><td>${product.qty != null ? `<bdi>${number(product.qty)} ${t("pack")}</bdi>` : "—"}</td><td class="${m.productTablePrice}"><bdi>${money(product.final_price)}</bdi></td><td><a class="${m.productTableAction}" href="#/product/${encodeURIComponent(product.id)}" aria-label="${t("viewProduct")}: ${esc(nameOf(product))}">${t("details")}${arrow()}</a></td><td><button type="button" class="${m.productTableAdd}" data-cart-add="${esc(product.id)}" aria-label="${t("addToCart")}: ${esc(nameOf(product))}" onclick="this.dispatchEvent(new Event('clinic-cart-add',{bubbles:true}))">${icon("plus")}</button></td></tr>`).join("")}</tbody></table></div>`;
@@ -61,19 +114,78 @@ export function authPage(mode = "unconfigured", admin = false) {
   return `<section class="${m.loginShell}" aria-labelledby="login-title"><div class="${m.loginTopbar}">${localeButton}</div><div class="${m.loginPanel}"><div class="${m.loginPanelInner}"><img class="${m.loginPanelLogo}" src="/assets/clinic-logo-transparent.png" alt="Clinic" width="155" height="155" /><h1 id="login-title" tabindex="-1">${t("loginTitle")}</h1><p class="${m.loginText}">${t("loginText")}</p>${authForm(mode, m.loginForm, m.loginSubmit, m.loginError)}<div class="${m.loginFooter}"><span>${t("loginFootnote")}</span>${novaAttribution({ withLogo: true })}</div></div></div></section>`;
 }
 export function offersPage(data) {
-  return `<div class="${m.intro}"><div><h1 tabindex="-1">${t("magazine")}</h1><p>${t("subtitle")}</p></div></div>${data.offers.length ? `<section aria-roledescription="${locale === "ar" ? "عارض عروض" : "carousel"}" aria-label="${t("offers")}" id="carousel"><div class="${m.cover}" id="cover" tabindex="0">${offerCard(data.offers[0], data)}</div><div class="${m.carouselFoot}"><div class="${m.slideMeta}" id="slide-position" aria-live="polite"><strong>${number(1)} / ${number(data.offers.length)}</strong><span>${t("offers")}</span></div><div class="${m.dots}">${data.offers.map((offer, i) => `<button class="${m.dot}" data-slide="${i}" aria-label="${t("slide")} ${number(i + 1)}: ${esc(nameOf(offer))}" aria-current="${i === 0}"></button>`).join("")}</div><div class="${m.carouselArrows}"><button class="${s.iconButton}" id="previous-offer" aria-label="${t("previous")}" disabled>${icon("arrow", s.flip)}</button><button class="${s.iconButton}" id="next-offer" aria-label="${t("next")}" disabled>${icon("arrow")}</button></div></div></section>` : empty("offersEmpty", "emptyText")}<section class="${m.section}"><div class="${m.sectionHead}"><div><h2>${t("curated")}</h2><p>${t("curatedText")}</p></div><a class="${m.textLink}" href="#/brands">${t("allBrands")}${arrow()}</a></div><div class="${m.brandGrid}">${data.companies.slice(0, 5).map(brandTile).join("")}</div>${!data.companies.length ? empty() : ""}</section>`;
+  return `<div class="${m.intro}"><div><h1 tabindex="-1">${t("magazine")}</h1><p>${t("subtitle")}</p></div></div>${data.offers.length ? `<section aria-roledescription="${locale === "ar" ? "عارض عروض" : "carousel"}" aria-label="${t("offers")}" id="carousel"><div class="${m.cover}" id="cover" tabindex="0">${offerCard(data.offers[0], data)}</div><div class="${m.carouselFoot}"><div class="${m.slideMeta}" id="slide-position" aria-live="polite"><strong>${number(1)} / ${number(data.offers.length)}</strong><span>${t("offers")}</span></div><div class="${m.dots}">${data.offers.map((offer, i) => `<button class="${m.dot}" data-slide="${i}" aria-label="${t("slide")} ${number(i + 1)}: ${esc(nameOf(offer))}" aria-current="${i === 0}"></button>`).join("")}</div><div class="${m.carouselArrows}"><button class="${s.iconButton}" id="previous-offer" aria-label="${t("previous")}" disabled>${icon("arrow", s.flip)}</button><button class="${s.iconButton}" id="next-offer" aria-label="${t("next")}" disabled>${icon("arrow")}</button></div></div></section>` : empty("offersEmpty", "emptyText")}<section class="${m.section}"><div class="${m.sectionHead}"><div><h2>${t("curated")}</h2><p>${t("curatedText")}</p></div><a class="${m.textLink}" href="#/brands">${t("allBrands")}${arrow()}</a></div><div class="${m.brandGrid}">${data.companies
+    .slice(0, 5)
+    .map((brand) => brandTile(brand, data))
+    .join("")}</div>${!data.companies.length ? empty() : ""}</section>`;
 }
 export function brandsPage(data, route) {
   const exclusiveOnly = route.parts[0] === "exclusive";
-  const q = route.params.get("q") || "";
-  const list = paginate(
-    data.companies.filter(
-      (x) => (!exclusiveOnly || x.is_exclusive) && matches(x, q),
-    ),
-    route,
-    40,
+  const favoritesOnly = route.parts[0] === "favorites";
+  const query = route.params.get("q") || "";
+  const favoriteIds = new Set(data.favoriteCompanyIds || []);
+  const companies = data.companies.filter(
+    (brand) =>
+      (!exclusiveOnly || brand.is_exclusive) &&
+      (!favoritesOnly || favoriteIds.has(brand.id)) &&
+      matches(brand, query),
   );
-  return `<div class="${m.pageHead}"><h1 tabindex="-1">${t(exclusiveOnly ? "exclusiveBrands" : "allBrands")}</h1><p>${t(exclusiveOnly ? "exclusiveIntro" : "brandIntro")}</p></div><div class="${m.toolbar}">${searchBox(q, "searchBrands")}<span class="${m.count}" role="status">${number(list.total)} ${t("results")}</span></div><div class="${m.brandGrid} ${m.directory}">${list.items.map(brandTile).join("")}</div>${list.total ? "" : empty(q ? "noResults" : exclusiveOnly ? "exclusiveEmpty" : "empty", q ? "noResultsText" : exclusiveOnly ? "exclusiveEmptyText" : "emptyText")}${pagination(list.page, list.pages)}`;
+  const list = paginate(companies, route, 40);
+  const title = favoritesOnly
+    ? "favoriteBrands"
+    : exclusiveOnly
+      ? "exclusiveBrands"
+      : "allBrands";
+  const intro = exclusiveOnly
+    ? "exclusiveIntro"
+    : favoritesOnly
+      ? "favoritesEmptyText"
+      : "brandIntro";
+  let emptyState = "";
+  if (!list.total && !(favoritesOnly && data.favoriteError)) {
+    if (favoritesOnly && !query) {
+      emptyState =
+        empty("favoritesEmpty", "favoritesEmptyText") +
+        link("#/brands", t("allBrands"));
+    } else {
+      emptyState = empty(
+        query ? "noResults" : exclusiveOnly ? "exclusiveEmpty" : "empty",
+        query
+          ? "noResultsText"
+          : exclusiveOnly
+            ? "exclusiveEmptyText"
+            : "emptyText",
+      );
+    }
+  }
+  const tiles = list.items.map((brand) => brandTile(brand, data)).join("");
+  return (
+    '<div class="' +
+    m.pageHead +
+    '"><h1 tabindex="-1">' +
+    t(title) +
+    "</h1><p>" +
+    t(intro) +
+    '</p></div><div class="' +
+    m.toolbar +
+    '">' +
+    searchBox(query, "searchBrands") +
+    '<span class="' +
+    m.count +
+    '" role="status">' +
+    number(list.total) +
+    " " +
+    t("results") +
+    '</span></div><div class="' +
+    m.brandGrid +
+    " " +
+    m.directory +
+    '">' +
+    tiles +
+    "</div>" +
+    emptyState +
+    pagination(list.page, list.pages)
+  );
 }
 export function brandPage(data, route) {
   const brand = data.companies.find((b) => b.id === route.parts[1]);

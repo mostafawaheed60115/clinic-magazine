@@ -283,6 +283,35 @@ export async function readCatalog({
   };
 }
 
+export async function readFavoriteCompanyIds(userId) {
+  const { data, error } = await requireClient()
+    .from("company_favorites")
+    .select("company_id")
+    .eq("user_id", userId);
+  if (error) throw error;
+  return (data || []).map(({ company_id }) => company_id);
+}
+
+export async function setFavoriteCompany(userId, companyId, favorite) {
+  const client = requireClient();
+  if (favorite) {
+    const { error } = await client
+      .from("company_favorites")
+      .insert({ user_id: userId, company_id: companyId });
+    // A second tab can add the same favorite first; the composite key makes
+    // that race an idempotent success.
+    if (error && error.code !== "23505") throw error;
+    return;
+  }
+
+  const { error } = await client
+    .from("company_favorites")
+    .delete()
+    .eq("user_id", userId)
+    .eq("company_id", companyId);
+  if (error) throw error;
+}
+
 export async function saveConsultationSettings(settings, expectedRevision) {
   const { data, error } = await requireClient()
     .from("app_settings")

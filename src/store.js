@@ -14,6 +14,8 @@ import {
   readAdminOrders as readAdminOrdersRemote,
   readAdminOrderReports as readAdminOrderReportsRemote,
   updateOrderStatus as updateOrderStatusRemote,
+  readFavoriteCompanyIds as readFavoriteCompanyIdsRemote,
+  setFavoriteCompany as setFavoriteCompanyRemote,
 } from "./cloud.js";
 import {
   normalizeWhatsappPhone,
@@ -27,9 +29,15 @@ export const openStore = demoStore.openStore;
 
 const hasCloudConfig = () => cloudConfigured;
 const CACHE_TTL_MS = 30_000;
+const FAVORITES_CACHE_TTL_MS = 30_000;
 let catalogCache = null;
 let catalogRead = null;
 let cacheGeneration = 0;
+let favoritesCache = null;
+let favoritesRead = null;
+let favoritesGeneration = 0;
+
+const demoFavoritesKey = (userId) => `clinic-demo-favorites:${userId}`;
 
 function catalogIdentity() {
   const state = getAuthState();
@@ -42,6 +50,12 @@ export function invalidateCatalogCache() {
   // An old request may still complete. Its generation check prevents it from
   // repopulating the cache after a write or auth transition.
   catalogRead = null;
+}
+
+export function invalidateFavoriteCache() {
+  favoritesGeneration += 1;
+  favoritesCache = null;
+  favoritesRead = null;
 }
 
 const unconfigured = () => {
@@ -92,6 +106,96 @@ export async function readAll({
       if (catalogRead?.promise === promise) catalogRead = null;
     });
   return promise;
+}
+
+export async function readFavoriteCompanyIds({ force = false } = {}) {
+  await requireSession();
+  const identity = catalogIdentity();
+  const userId = getAuthState().session?.user?.id || getAuthState().user?.id;
+  if (!userId) throw new Error("A signed-in user is required");
+
+  if (
+    !force &&
+    favoritesCache?.identity === identity &&
+    favoritesCache.expiresAt > Date.now()
+  )
+    return [...favoritesCache.ids];
+  if (!force && favoritesRead?.identity === identity)
+    return favoritesRead.promise;
+
+  const generation = favoritesGeneration;
+  const promise = isDemoMode()
+    ? Promise.resolve().then(() => {
+        const key = demoFavoritesKey(userId);
+        const saved = localStorage.getItem(key);
+        if (!saved) return [];
+        try {
+          const ids = JSON.parse(saved);
+          return Array.isArray(ids)
+            ? [...new Set(ids.filter((id) => typeof id === "string"))]
+            : [];
+        } catch {
+          localStorage.removeItem(key);
+          return [];
+        }
+      })
+    : cloudConfigured
+      ? readFavoriteCompanyIdsRemote(userId)
+      : Promise.reject(unconfigured());
+
+  const read = promise.then((ids) => {
+    if (generation === favoritesGeneration && identity === catalogIdentity()) {
+      favoritesCache = {
+        identity,
+        ids,
+        expiresAt: Date.now() + FAVORITES_CACHE_TTL_MS,
+      };
+    }
+    return [...ids];
+  });
+  favoritesRead = { identity, promise: read };
+  read
+    .finally(() => {
+      if (favoritesRead?.promise === read) favoritesRead = null;
+    })
+    .catch(() => {});
+  return read;
+}
+
+export async function setFavoriteCompany(companyId, favorite) {
+  await requireSession();
+  const identity = catalogIdentity();
+  const userId = getAuthState().session?.user?.id || getAuthState().user?.id;
+  if (!userId) throw new Error("A signed-in user is required");
+
+  const current = await readFavoriteCompanyIds();
+  const hasFavorite = current.includes(companyId);
+  if (hasFavorite === favorite) return current;
+
+  let next;
+  if (isDemoMode()) {
+    next = favorite
+      ? [...current, companyId]
+      : current.filter((id) => id !== companyId);
+    localStorage.setItem(demoFavoritesKey(userId), JSON.stringify(next));
+  } else {
+    if (!cloudConfigured) throw unconfigured();
+    await setFavoriteCompanyRemote(userId, companyId, favorite);
+    next = favorite
+      ? [...current, companyId]
+      : current.filter((id) => id !== companyId);
+  }
+
+  if (identity === catalogIdentity()) {
+    favoritesCache = {
+      identity,
+      ids: next,
+      expiresAt: Date.now() + FAVORITES_CACHE_TTL_MS,
+    };
+    favoritesRead = null;
+  }
+  channel?.postMessage("favorites-updated");
+  return [...next];
 }
 
 export async function readSettings() {
@@ -259,7 +363,10 @@ export async function resetStore() {
   await requireSession();
   if (isDemoMode()) {
     await demoStore.resetStore();
+    const userId = getAuthState().session?.user?.id || getAuthState().user?.id;
+    if (userId) localStorage.removeItem(demoFavoritesKey(userId));
     invalidateCatalogCache();
+    invalidateFavoriteCache();
     return;
   }
   throw new Error("Reset is available only in demo mode");

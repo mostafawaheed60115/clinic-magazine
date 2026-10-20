@@ -7,6 +7,9 @@ import {
   readAdminOrderReports,
   channel,
   invalidateCatalogCache,
+  invalidateFavoriteCache,
+  readFavoriteCompanyIds,
+  setFavoriteCompany,
 } from "./store.js";
 import {
   getAuthState,
@@ -76,7 +79,7 @@ function getRoute() {
 function chrome(route, content, options = {}) {
   const current = route.parts[0];
   const direction = locale === "ar" ? "rtl" : "ltr";
-  const admin = current === "admin";
+  const admin = current === "admin" && authState.isAdmin;
   const social = `<div class="${m.socialLinks}" aria-label="${t("followUs")}">${[
     ["facebook", "https://www.facebook.com/clinicpharma.assiut"],
     ["instagram", "https://www.instagram.com/clinicpharmaa/"],
@@ -89,7 +92,7 @@ function chrome(route, content, options = {}) {
     .join("")}</div>`;
   const navigation = admin
     ? `<span class="${m.adminCrumb}">${t("admin")}</span>`
-    : `<nav class="${m.nav}" dir="${direction}" aria-label="${t("browse")}"><a href="#/offers" ${current === "offers" ? 'aria-current="page"' : ""}>${t("offers")}</a><a href="#/brands" ${["brands", "brand", "product"].includes(current) ? 'aria-current="page"' : ""}>${t("brands")}</a><a href="#/exclusive" ${current === "exclusive" ? 'aria-current="page"' : ""}>${t("exclusiveBrands")}</a><a href="#/events" ${current === "events" ? 'aria-current="page"' : ""}>${t("events")}</a>${social}</nav>`;
+    : `<nav class="${m.nav}" dir="${direction}" aria-label="${t("browse")}"><a href="#/offers" ${current === "offers" ? 'aria-current="page"' : ""}>${t("offers")}</a><a href="#/brands" ${["brands", "brand", "product"].includes(current) ? 'aria-current="page"' : ""}>${t("brands")}</a><a href="#/favorites" ${current === "favorites" ? 'aria-current="page"' : ""}>${icon("heart")}${t("favoriteBrands")}</a><a href="#/exclusive" ${current === "exclusive" ? 'aria-current="page"' : ""}>${t("exclusiveBrands")}</a><a href="#/events" ${current === "events" ? 'aria-current="page"' : ""}>${t("events")}</a>${social}</nav>`;
   const whatsappHref = !admin
     ? consultationUrl(options.settings?.whatsapp_phone)
     : "";
@@ -113,7 +116,29 @@ function chrome(route, content, options = {}) {
     !admin && options.cartData
       ? `<button id="cart-open" class="${m.cartOpenButton}" type="button" aria-haspopup="dialog" aria-controls="shopping-cart-dialog" aria-label="${t("cart")} (${cartCount()})">${icon("bag")}<span>${t("cart")}</span><b id="cart-count" aria-live="polite">${cartCount()}</b></button>`
       : "";
-  return `<a class="${m.skip}" href="#main">${t("skip")}</a><header class="${m.header} ${admin ? m.adminHeader : ""}"><div class="${m.headerInner}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="145" height="145" /></a>${navigation}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a>${cartControl}<button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></div></header><div class="${m.shell} ${options.keepSearch ? m.searchRender : ""}"><main id="main">${content}</main></div><footer class="${m.footer}"><div class="${m.footerInner}"><div class="${m.footerTop}"><div>${admin ? `<p>${t("footerText")}</p>` : ""}<p>${t("footerTextOffers")}</p>${novaAttribution()}</div><div class="${m.footerContact}">${contactHref ? `<a href="${contactHref}">${icon("phone")}${t("contactPhone")}: <bdi>${options.settings.contact_phone}</bdi></a>` : ""}${complaintsHref ? `<a href="${complaintsHref}">${icon("phone")}${t("complaintsPhone")}: <bdi>${options.settings.complaints_phone}</bdi></a>` : ""}<p>${icon("map")}${t("branch1")}: ${t("branch1Address")}</p><p>${icon("map")}${t("branch2")}: ${t("branch2Address")}</p></div>${admin ? "" : `<a class="${m.footerExploreLink}" href="#/brands">${t("exploreBrands")}${arrow()}</a>`}</div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span>${social}${admin ? "" : `<a href="#/admin">${t("admin")}</a>`}</div></div></footer>${!admin && options.cartData ? cartDialog(options.cartData) : ""}<div class="${m.floatingActions}">${consultation}${telesalesButton}${serviceButton}</div><div class="${m.demoNotice}">${authState.mode === "demo" ? t("demo") : ""}</div>`;
+  const favoriteRecovery =
+    !admin && options.favoriteError
+      ? '<div class="' +
+        m.favoriteError +
+        '" role="alert"><p>' +
+        t("favoritesError") +
+        '</p><button id="favorites-retry" type="button" class="' +
+        s.button +
+        " " +
+        s.secondary +
+        '">' +
+        t("retry") +
+        "</button></div>"
+      : "";
+  const demoNotice =
+    authState.mode === "demo"
+      ? '<p class="' +
+        m.demoNotice +
+        '" role="status" aria-live="polite">' +
+        t("demo") +
+        "</p>"
+      : "";
+  return `<a class="${m.skip}" href="#main">${t("skip")}</a><header class="${m.header} ${admin ? m.adminHeader : ""}"><div class="${m.headerInner}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="145" height="145" /></a>${navigation}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a>${cartControl}<button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></div></header><div class="${m.shell} ${options.keepSearch ? m.searchRender : ""}"><main id="main">${favoriteRecovery}${content}${demoNotice}</main></div><footer class="${m.footer}"><div class="${m.footerInner}"><div class="${m.footerTop}"><div>${admin ? `<p>${t("footerText")}</p>` : ""}<p>${t("footerTextOffers")}</p>${novaAttribution()}</div><div class="${m.footerContact}">${contactHref ? `<a href="${contactHref}">${icon("phone")}${t("contactPhone")}: <bdi>${options.settings.contact_phone}</bdi></a>` : ""}${complaintsHref ? `<a href="${complaintsHref}">${icon("phone")}${t("complaintsPhone")}: <bdi>${options.settings.complaints_phone}</bdi></a>` : ""}<p>${icon("map")}${t("branch1")}: ${t("branch1Address")}</p><p>${icon("map")}${t("branch2")}: ${t("branch2Address")}</p></div>${admin ? "" : `<a class="${m.footerExploreLink}" href="#/brands">${t("exploreBrands")}${arrow()}</a>`}</div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span>${social}${admin ? "" : `<a href="#/admin">${t("admin")}</a>`}</div></div></footer>${!admin && options.cartData ? cartDialog(options.cartData) : ""}<div class="${m.floatingActions}">${consultation}${telesalesButton}${serviceButton}</div>`;
 }
 
 function loading(content = t("sessionLoading")) {
@@ -150,10 +175,10 @@ export async function render(options = {}) {
   await ensureSessionValid();
   authState = getAuthState();
   if (!authState.session) {
-    app.innerHTML = authPage(
-      authState.mode || "unconfigured",
-      page === "admin",
-    );
+    app.innerHTML =
+      '<main id="main">' +
+      authPage(authState.mode || "unconfigured", page === "admin") +
+      "</main>";
     bindAuth(signal);
     document.title = `${t(page === "admin" ? "adminLoginTitle" : "loginTitle")} | Clinic`;
     return;
@@ -199,16 +224,23 @@ export async function render(options = {}) {
       : options.keepSearch && cachedData
         ? cachedData
         : readAll({ includeEvents, includeEventRequests });
-    const [catalog, adminData] = await Promise.all([
+    const favoritePromise =
+      page === "admin"
+        ? Promise.resolve([])
+        : readFavoriteCompanyIds().catch(() => null);
+    const [catalog, adminData, favoriteCompanyIds] = await Promise.all([
       catalogPromise,
       includeAdminOrders
         ? readAdminOrders(Number(route.params.get("page")) || 1)
         : includeAdminReports
           ? readAdminOrderReports(dates.start_date, dates.end_date)
           : Promise.resolve(null),
+      favoritePromise,
     ]);
     data = {
       ...catalog,
+      favoriteCompanyIds: favoriteCompanyIds || [],
+      favoriteError: favoriteCompanyIds === null,
       ...(includeAdminOrders ? { adminOrders: adminData } : {}),
       ...(includeAdminReports ? { orderReports: adminData } : {}),
     };
@@ -227,7 +259,7 @@ export async function render(options = {}) {
   if (request !== version) return;
   let content;
   if (page === "offers") content = offersPage(data);
-  else if (page === "brands" || page === "exclusive")
+  else if (page === "brands" || page === "exclusive" || page === "favorites")
     content = brandsPage(data, route);
   else if (page === "brand") content = brandPage(data, route);
   else if (page === "product") content = productPage(data, route);
@@ -239,10 +271,12 @@ export async function render(options = {}) {
     ...options,
     settings: data.settings,
     cartData: data,
+    favoriteError: data.favoriteError,
   });
   activeHash = location.hash || "#/offers";
   hydrateImages(app);
   bindChrome(signal);
+  bindFavoriteControls(app, data, route, signal, render);
   if (page !== "admin") bindCart(app, data, signal);
   if (page === "offers") bindCarousel(app, data, signal, hydrateImages);
   if (page === "events") pageModule.bindEvents(app, signal, render);
@@ -442,6 +476,67 @@ function bindChrome(signal) {
     },
     { signal },
   );
+  app.querySelector("#favorites-retry")?.addEventListener(
+    "click",
+    async () => {
+      invalidateFavoriteCache();
+      await render({ focus: true });
+    },
+    { signal },
+  );
+}
+
+function bindFavoriteControls(root, data, route, signal, renderPage) {
+  root.querySelectorAll("[data-favorite-toggle]").forEach((button) => {
+    button.addEventListener(
+      "click",
+      async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (button.disabled) return;
+
+        const companyId = button.dataset.favoriteToggle;
+        const favorite = button.getAttribute("aria-pressed") !== "true";
+        button.disabled = true;
+        button.setAttribute("aria-busy", "true");
+
+        try {
+          data.favoriteCompanyIds = await setFavoriteCompany(
+            companyId,
+            favorite,
+          );
+          data.favoriteError = false;
+          if (signal.aborted) return;
+
+          notify(t(favorite ? "favoriteAdded" : "favoriteRemoved"), "success");
+          if (route.parts[0] === "favorites" && !favorite) {
+            await renderPage({ focus: true });
+            return;
+          }
+
+          root.querySelectorAll("[data-favorite-toggle]").forEach((control) => {
+            if (control.dataset.favoriteToggle !== companyId) return;
+            control.setAttribute("aria-pressed", String(favorite));
+            control.setAttribute(
+              "aria-label",
+              t(favorite ? "removeFavorite" : "addFavorite") +
+                ": " +
+                control.dataset.favoriteName,
+            );
+            control.innerHTML = icon("heart");
+          });
+        } catch {
+          if (!signal.aborted) notify(t("favoritesSaveError"), "error");
+        } finally {
+          if (!signal.aborted && button.isConnected) {
+            button.disabled = Boolean(data.favoriteError);
+            button.removeAttribute("aria-busy");
+          }
+        }
+      },
+      { signal },
+    );
+  });
 }
 
 document.addEventListener("click", async (event) => {
@@ -479,6 +574,8 @@ window.addEventListener("beforeunload", (event) => {
 });
 channel?.addEventListener("message", () => {
   invalidateCatalogCache();
+  invalidateFavoriteCache();
+  cachedData = null;
   if (isDirty()) notify(t("updateNotice"));
   else render();
 });
@@ -489,6 +586,7 @@ onAuthChange((next) => {
     setCartAccount(nextIdentity);
     cachedData = null;
     invalidateCatalogCache();
+    invalidateFavoriteCache();
     if (authState) authState.users = undefined;
   }
   authIdentity = nextIdentity;

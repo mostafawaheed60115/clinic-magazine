@@ -61,6 +61,13 @@ const reportIdentityMigration = await readFile(
   ),
   "utf8",
 );
+const favoritesMigration = await readFile(
+  new URL(
+    "../migrations/20261020215745_company_favorites.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 for (const table of ["users", "admin", "companies", "products", "offers"]) {
   assert.match(
@@ -238,6 +245,41 @@ assert.match(
 assert.match(
   reportIdentityMigration,
   /group by order_row\.user_id, user_row\.name, user_row\.username/,
+);
+assert.match(
+  favoritesMigration,
+  /create table public\.company_favorites\s*\([\s\S]*primary key \(user_id, company_id\)/,
+);
+assert.match(
+  favoritesMigration,
+  /user_id uuid not null references public\.users\(id\) on delete cascade/,
+);
+assert.match(
+  favoritesMigration,
+  /company_id uuid not null references public\.companies\(id\) on delete cascade/,
+);
+assert.match(
+  favoritesMigration,
+  /alter table public\.company_favorites enable row level security/,
+);
+assert.match(
+  favoritesMigration,
+  /alter table public\.company_favorites force row level security/,
+);
+for (const action of ["select", "insert", "delete"]) {
+  assert.match(
+    favoritesMigration,
+    new RegExp(`company_favorites_${action}_own`),
+    `missing own-favorites ${action} policy`,
+  );
+  assert.match(
+    favoritesMigration,
+    new RegExp(`user_id = \\(select auth\\.uid\\(\\)\\)`),
+  );
+}
+assert.match(
+  favoritesMigration,
+  /grant select, insert, delete on table public\.company_favorites to authenticated/,
 );
 
 console.log("Clinic Supabase schema contract passed");

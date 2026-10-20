@@ -35,6 +35,52 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test("favorites persist per account and can be removed from the favorites tab", async ({
+  page,
+}) => {
+  await english(page);
+  await page.evaluate(async () => {
+    const auth = await import("/src/auth.js");
+    await auth.signIn("demo", "clinic");
+  });
+  await page.goto("/#/brands");
+
+  const favorite = page.getByRole("button", {
+    name: "Add to favorites: LUMA",
+  });
+  await favorite.click();
+  await expect(
+    page.getByRole("button", { name: "Remove from favorites: LUMA" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Brand added to favorites")).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Remove from favorites: LUMA" }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByRole("link", { name: "Favorite brands" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Favorite brands" }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "LUMA" })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Remove from favorites: LUMA" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "No favorite brands yet" }),
+  ).toBeVisible();
+
+  await page.evaluate(async () => {
+    const auth = await import("/src/auth.js");
+    await auth.signOut();
+    await auth.signIn("admin", "clinic");
+  });
+  await page.goto("/#/favorites");
+  await expect(
+    page.getByRole("heading", { name: "No favorite brands yet" }),
+  ).toBeVisible();
+});
+
 test("localization dictionaries have complete parity", () => {
   expect(Object.keys(messages.ar).sort()).toEqual(
     Object.keys(messages.en).sort(),

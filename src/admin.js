@@ -195,12 +195,35 @@ function consultationSettingsPage(settings) {
     `<div class="${a.field}"><label for="${key}">${t(label)}</label><input id="${key}" name="${key}" type="tel" dir="ltr" ${required ? "required" : ""} autocomplete="tel" value="${esc(settings[key] || "")}" aria-describedby="${key}-error" /><span id="${key}-error" class="${s.error}"></span></div>`;
   return `<div class="${a.head}"><h1 tabindex="-1">${t("contactSettings")}</h1><p>${t("contactSettingsText")}</p></div><form id="consultation-settings-form" class="${a.form} ${a.settingsForm}" novalidate data-revision="${settings.revision}">${phoneField("whatsapp_phone", "consultationPhone", true)}${phoneField("telesales_whatsapp_phone", "telesalesWhatsappPhone", true)}${phoneField("complaints_phone", "complaintsPhone", true)}${phoneField("customer_service_phone", "customerServicePhone")}${phoneField("contact_phone", "contactPhone")}<p id="consultation-settings-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}">${t("save")}</button><a class="${s.button} ${s.secondary}" href="${esc(consultationUrl(settings.whatsapp_phone))}" target="_blank" rel="noopener noreferrer">${t("medicalConsultation")}${arrow()}</a></div></form>`;
 }
+function userPasswordField(edit) {
+  const required = edit ? "" : "required";
+  return (
+    '<div class="' +
+    a.field +
+    '"><label for="field-password">' +
+    t(edit ? "resetPassword" : "password") +
+    '</label><div class="' +
+    a.password +
+    '"><input id="field-password" name="password" type="password" autocomplete="new-password" dir="ltr" ' +
+    required +
+    ' aria-describedby="field-password-error" /><button type="button" id="user-password-toggle" class="' +
+    s.iconButton +
+    '" aria-label="' +
+    esc(t("showPassword")) +
+    '" aria-pressed="false">' +
+    icon("eye") +
+    '</button></div><span class="' +
+    s.error +
+    '" id="field-password-error"></span></div>'
+  );
+}
+
 function userEditor(users, route) {
   const edit = route.parts[2] === "edit";
   const item = edit ? users.find((u) => u.id === route.parts[3]) : {};
   if (!item) return notFound();
   const username = item.username || item.user || item.email || "";
-  return `<div class="${a.head}"><h1 tabindex="-1">${t(edit ? "updateUser" : "createUser")}</h1></div><p class="${a.note}">${t("passwordNeverShown")}</p><form id="user-form" class="${a.form}" novalidate data-id="${esc(item.id || "")}" data-revision="${esc(item.revision || 1)}"><div class="${a.formGrid}">${field("name", "nameEn", item.name, { required: true })}${field("user", "username", username, { required: true, dir: "ltr", extra: `${edit ? "readonly" : ""} autocomplete="username"` })}${field("phone", "phone", item.phone, { type: "tel", dir: "ltr" })}${field("password", edit ? "resetPassword" : "password", "", { type: "password", required: !edit, dir: "ltr", extra: 'autocomplete="new-password"' })}${edit ? `<div class="${a.field}"><label for="field-active">${t("active")}</label><select id="field-active" name="active"><option value="true" ${item.active !== false ? "selected" : ""}>${t("enableUser")}</option><option value="false" ${item.active === false ? "selected" : ""}>${t("disableUser")}</option></select></div>` : ""}</div><p id="user-form-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}">${t("save")}</button><a class="${s.button} ${s.secondary}" href="#/admin/users">${t("cancel")}</a></div></form>`;
+  return `<div class="${a.head}"><h1 tabindex="-1">${t(edit ? "updateUser" : "createUser")}</h1></div><p class="${a.note}">${t("passwordNeverShown")}</p><form id="user-form" class="${a.form}" novalidate data-id="${esc(item.id || "")}" data-revision="${esc(item.revision || 1)}"><div class="${a.formGrid}">${field("name", "nameEn", item.name, { required: true })}${field("user", "username", username, { required: true, dir: "ltr", extra: `${edit ? "readonly" : ""} autocomplete="username"` })}${field("phone", "phone", item.phone, { type: "tel", dir: "ltr" })}${userPasswordField(edit)}${edit ? `<div class="${a.field}"><label for="field-active">${t("active")}</label><select id="field-active" name="active"><option value="true" ${item.active !== false ? "selected" : ""}>${t("enableUser")}</option><option value="false" ${item.active === false ? "selected" : ""}>${t("disableUser")}</option></select></div>` : ""}</div><p id="user-form-error" role="alert" class="${a.errorSummary}"></p><div class="${a.formActions}"><button type="submit" class="${s.button} ${s.primary}">${t("save")}</button><a class="${s.button} ${s.secondary}" href="#/admin/users">${t("cancel")}</a></div></form>`;
 }
 function imageLibrary() {
   return `<div class="${a.utilityPage}"><div class="${a.head}"><div><span class="${a.eyebrow}">${t("admin")}</span><h1 tabindex="-1">${t("imageLibrary")}</h1><p>${t("imageLibraryText")}</p></div></div><section class="${a.uploadHero}"><label class="${a.dropZone}" for="bulk-image-input" tabindex="0" role="button" aria-controls="bulk-image-input"><span class="${a.dropIcon}">${icon("image")}</span><strong>${t("dropImages")}</strong><small>${t("imageBatchHelp")}</small><span class="${s.button} ${s.secondary}">${t("chooseImages")}</span><input id="bulk-image-input" type="file" accept="image/jpeg,image/png,image/webp" multiple /></label><div class="${a.batchActions}"><span id="bulk-image-count" class="${a.listHint}"></span><button type="button" id="bulk-image-upload" class="${s.button} ${s.primary}" disabled>${t("uploadAll")}</button><button type="button" id="bulk-copy-urls" class="${s.button} ${s.secondary}" disabled>${t("copyAllUrls")}</button><button type="button" id="bulk-download-map" class="${s.button} ${s.secondary}" disabled>${t("downloadImageMap")}</button></div><p id="bulk-image-status" class="${a.status}" role="status" aria-live="polite"></p><div id="bulk-image-list" class="${a.uploadList}"></div></section></div>`;
@@ -1250,7 +1273,21 @@ function bindEditor(root, form, data, context) {
   );
 }
 function bindUserEditor(root, form, users, context) {
-  const { signal, navigate } = context;
+  const { signal, navigate, authState } = context;
+  const passwordInput = form.elements.password;
+  root.querySelector("#user-password-toggle")?.addEventListener(
+    "click",
+    (event) => {
+      const show = passwordInput.type === "password";
+      passwordInput.type = show ? "text" : "password";
+      event.currentTarget.setAttribute(
+        "aria-label",
+        t(show ? "hidePassword" : "showPassword"),
+      );
+      event.currentTarget.setAttribute("aria-pressed", String(show));
+    },
+    { signal },
+  );
   form.addEventListener(
     "input",
     () => {
@@ -1297,10 +1334,19 @@ function bindUserEditor(root, form, users, context) {
           });
         setDirty(false);
         notify(t("userSaved"));
+        if (authState) {
+          authState.users = undefined;
+          authState.usersError = false;
+        }
         navigate("#/admin/users");
       } catch (error) {
-        root.querySelector("#user-form-error").textContent =
-          error?.message || t("userError");
+        const partialUpdate = error?.code === "partial_update";
+        if (partialUpdate && Number.isInteger(error.updated?.revision)) {
+          form.dataset.revision = String(error.updated.revision);
+        }
+        root.querySelector("#user-form-error").textContent = partialUpdate
+          ? t("userProfileSavedPasswordFailed")
+          : error?.message || t("userError");
         submit.disabled = false;
         submit.removeAttribute("aria-busy");
         submit.textContent = original;
