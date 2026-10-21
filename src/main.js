@@ -54,6 +54,34 @@ let authState = getAuthState();
 let authIdentity = authState.session?.user?.id || authState.user?.id || "";
 let renderPending = false;
 
+async function toggleLocale() {
+  if (!(await mayLeave())) return;
+  const { scrollX, scrollY } = window;
+  setLocale(locale === "ar" ? "en" : "ar");
+  await render();
+  window.scrollTo(scrollX, scrollY);
+}
+
+// Keep the locale control available while a route render replaces the page
+// chrome or waits for data. The app root survives those replacements.
+app.addEventListener("click", (event) => {
+  const button = app.querySelector("#locale-toggle");
+  const target = event.target instanceof Element ? event.target : null;
+  const bounds = button?.getBoundingClientRect();
+  const insideButton =
+    bounds &&
+    event.clientX >= bounds.left &&
+    event.clientX <= bounds.right &&
+    event.clientY >= bounds.top &&
+    event.clientY <= bounds.bottom;
+  if (
+    target?.closest("#locale-toggle") ||
+    (event.target === button?.parentElement && insideButton)
+  ) {
+    void toggleLocale();
+  }
+});
+
 function getRoute() {
   const direct = location.pathname.replace(/^\/+|\/+$/g, "");
   const raw = location.hash
@@ -112,6 +140,11 @@ function chrome(route, content, options = {}) {
     !admin && serviceHref
       ? `<a class="${m.serviceButton}" href="${serviceHref}" aria-label="${t("customerService")}">${icon("phone")}<span>${t("customerService")}</span></a>`
       : "";
+  const contactLinks = `${consultation}${telesalesButton}${serviceButton}`;
+  const floatingContact =
+    !admin && (whatsappHref || telesalesHref || serviceHref)
+      ? `<aside class="${m.floatingActions}" aria-label="${t("contactOptions")}"><div class="${m.contactLinks}">${contactLinks}</div><details class="${m.contactMenu}"><summary class="${m.contactMenuToggle}" aria-label="${t("contactOptions")}">${icon("phone")}<span class="${s.srOnly}">${t("contactOptions")}</span></summary><div class="${m.contactMenuLinks}">${contactLinks}</div></details></aside>`
+      : "";
   const cartControl =
     !admin && options.cartData
       ? `<button id="cart-open" class="${m.cartOpenButton}" type="button" aria-haspopup="dialog" aria-controls="shopping-cart-dialog" aria-label="${t("cart")} (${cartCount()})">${icon("bag")}<span>${t("cart")}</span><b id="cart-count" aria-live="polite">${cartCount()}</b></button>`
@@ -138,7 +171,7 @@ function chrome(route, content, options = {}) {
         t("demo") +
         "</p>"
       : "";
-  return `<a class="${m.skip}" href="#main">${t("skip")}</a><header class="${m.header} ${admin ? m.adminHeader : ""}"><div class="${m.headerInner}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="145" height="145" /></a>${navigation}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" onclick="this.dispatchEvent(new Event('clinic-locale-toggle'))" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a>${cartControl}<button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></div></header><div class="${m.shell} ${options.keepSearch ? m.searchRender : ""}"><main id="main">${favoriteRecovery}${content}${demoNotice}</main></div><footer class="${m.footer}"><div class="${m.footerInner}"><div class="${m.footerTop}"><div>${admin ? `<p>${t("footerText")}</p>` : ""}<p>${t("footerTextOffers")}</p>${novaAttribution()}</div><div class="${m.footerContact}">${contactHref ? `<a href="${contactHref}">${icon("phone")}${t("contactPhone")}: <bdi>${options.settings.contact_phone}</bdi></a>` : ""}${complaintsHref ? `<a href="${complaintsHref}">${icon("phone")}${t("complaintsPhone")}: <bdi>${options.settings.complaints_phone}</bdi></a>` : ""}<p>${icon("map")}${t("branch1")}: ${t("branch1Address")}</p><p>${icon("map")}${t("branch2")}: ${t("branch2Address")}</p></div>${admin ? "" : `<a class="${m.footerExploreLink}" href="#/brands">${t("exploreBrands")}${arrow()}</a>`}</div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span>${social}${admin ? "" : `<a href="#/admin">${t("admin")}</a>`}</div></div></footer>${!admin && options.cartData ? cartDialog(options.cartData) : ""}<div class="${m.floatingActions}">${consultation}${telesalesButton}${serviceButton}</div>`;
+  return `<a class="${m.skip}" href="#main">${t("skip")}</a><header class="${m.header} ${admin ? m.adminHeader : ""}"><div class="${m.headerInner}"><a class="${m.logo}" href="#/offers" aria-label="Clinic — ${t("home")}"><img src="/assets/clinic-logo-transparent.png" alt="Clinic" width="145" height="145" /></a>${navigation}<div class="${m.headerTools}"><button id="locale-toggle" class="${m.locale}" aria-label="${locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}">${icon("globe")}<span lang="${locale === "ar" ? "en" : "ar"}">${locale === "ar" ? "English" : "العربية"}</span></button>${!admin ? `<a class="${m.headerSearch}" href="#/brands?focus=search" dir="${direction}" aria-label="${t("searchBrands")}">${icon("search")}</a>${cartControl}<button id="app-sign-out" class="${m.locale}" type="button" onclick="this.dispatchEvent(new Event('clinic-sign-out'))">${t("signOut")}</button>` : ""}</div></div></header><div class="${m.shell} ${options.keepSearch ? m.searchRender : ""}"><main id="main">${favoriteRecovery}${content}${demoNotice}</main></div><footer class="${m.footer}"><div class="${m.footerInner}"><div class="${m.footerTop}"><div>${admin ? `<p>${t("footerText")}</p>` : ""}<p>${t("footerTextOffers")}</p>${novaAttribution()}</div><div class="${m.footerContact}">${contactHref ? `<a href="${contactHref}">${icon("phone")}${t("contactPhone")}: <bdi>${options.settings.contact_phone}</bdi></a>` : ""}${complaintsHref ? `<a href="${complaintsHref}">${icon("phone")}${t("complaintsPhone")}: <bdi>${options.settings.complaints_phone}</bdi></a>` : ""}<p>${icon("map")}${t("branch1")}: ${t("branch1Address")}</p><p>${icon("map")}${t("branch2")}: ${t("branch2Address")}</p></div>${admin ? "" : `<a class="${m.footerExploreLink}" href="#/brands">${t("exploreBrands")}${arrow()}</a>`}</div><div class="${m.footerBottom}"><span>© ${new Date().getFullYear()} Clinic</span>${social}${admin ? "" : `<a href="#/admin">${t("admin")}</a>`}</div></div></footer>${!admin && options.cartData ? cartDialog(options.cartData) : ""}${floatingContact}`;
 }
 
 function loading(content = t("sessionLoading")) {
@@ -454,16 +487,6 @@ function signInErrorMessage(error) {
 }
 
 function bindChrome(signal) {
-  app.querySelector("#locale-toggle")?.addEventListener(
-    "clinic-locale-toggle",
-    async () => {
-      if (await mayLeave()) {
-        setLocale(locale === "ar" ? "en" : "ar");
-        render();
-      }
-    },
-    { signal },
-  );
   app.querySelector("#app-sign-out")?.addEventListener(
     "clinic-sign-out",
     async () => {

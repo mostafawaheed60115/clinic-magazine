@@ -746,6 +746,9 @@ test("Arabic default, carousel, language and keyboard", async ({ page }) => {
   await page.locator("#locale-toggle").click();
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   await expect(page.locator("h1")).toHaveText("Beauty, in good company.");
+  await page.locator("#locale-toggle").click();
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await expect(page.locator("h1")).toHaveText("عروض قوية ليك");
   expect(errors).toEqual([]);
 });
 
@@ -1124,6 +1127,27 @@ test("accessibility, responsive screenshots and reduced motion", async ({
   }
   await page.goto("/");
   await page.locator("#locale-toggle").click();
+  const contactOptions = page.locator(
+    'aside[aria-label="خيارات التواصل"] summary',
+  );
+  const contactLinks = page.locator(
+    'aside[aria-label="خيارات التواصل"] details a',
+  );
+  await expect(contactOptions).toBeVisible();
+  await expect(
+    page.locator('aside[aria-label="خيارات التواصل"] details'),
+  ).toHaveJSProperty("open", false);
+  await expect(contactLinks.first()).toBeHidden();
+  await contactOptions.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.locator('aside[aria-label="خيارات التواصل"] details'),
+  ).toHaveJSProperty("open", true);
+  await expect(contactLinks.first()).toBeVisible();
+  const mobileAccessibility = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+    .analyze();
+  expect(mobileAccessibility.violations).toEqual([]);
   await page.screenshot({ path: "work/mobile-ar.png", fullPage: true });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.locator("#next-offer").click();

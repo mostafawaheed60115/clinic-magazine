@@ -4,6 +4,7 @@ const DEVELOPMENT_ORIGINS = new Set([
   "http://localhost:4173",
   "http://127.0.0.1:4173",
 ]);
+const APPLICATION_ORIGINS = new Set(["https://magazine.clinicpharma.net"]);
 
 export function allowedOrigins(): Set<string> {
   const configured = Deno.env
@@ -12,9 +13,10 @@ export function allowedOrigins(): Set<string> {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  // Production must set ALLOWED_ORIGINS. The fallback keeps local Vite work
-  // usable while remaining limited to the two loopback development origins.
-  return new Set(configured?.length ? configured : DEVELOPMENT_ORIGINS);
+  // Keep the canonical app origin allowed even when deployment-specific
+  // origins are configured, while retaining the loopback development fallback.
+  const selected = configured?.length ? configured : DEVELOPMENT_ORIGINS;
+  return new Set([...selected, ...APPLICATION_ORIGINS]);
 }
 
 export function corsHeaders(request: Request): Headers {

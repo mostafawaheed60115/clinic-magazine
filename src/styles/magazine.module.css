@@ -1717,7 +1717,11 @@ html[lang="ar"] .loginPanel h1 {
 }
 .headerTools {
   gap: 9px;
-  transform-style: preserve-3d;
+}
+.headerTools .locale {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
 }
 .locale,
 .headerSearch {
@@ -2997,7 +3001,26 @@ html[dir="rtl"] .cartArrow {
   gap: 10px;
   pointer-events: none;
 }
-.floatingActions > a {
+.floatingActions > a,
+.floatingActions details,
+.floatingActions a {
+  pointer-events: auto;
+}
+.contactLinks {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: auto;
+}
+.contactMenu {
+  display: none;
+}
+.contactMenuLinks {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
   pointer-events: auto;
 }
 .floatingActions .floatingContactButton {
@@ -3146,6 +3169,47 @@ html[dir="rtl"] .cartArrow {
   .floatingActions {
     inset-inline-end: 12px;
     bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .floatingActions .contactMenu {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .floatingActions .contactLinks {
+    display: none;
+  }
+  .floatingActions .contactMenu > summary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    border: 1px solid rgb(255 255 255 / 0.56);
+    border-radius: 50%;
+    color: #fff;
+    background: var(--primary-deep);
+    box-shadow: 0 8px 20px rgb(30 51 40 / 0.24);
+    cursor: pointer;
+    list-style: none;
+  }
+  .floatingActions .contactMenu > summary::-webkit-details-marker {
+    display: none;
+  }
+  .floatingActions .contactMenu > summary svg {
+    width: 24px;
+    height: 24px;
+  }
+  .floatingActions .contactMenuLinks {
+    position: absolute;
+    inset-inline-end: 0;
+    bottom: calc(100% + 12px);
+    display: none;
+  }
+  .floatingActions .contactMenu[open] .contactMenuLinks {
+    display: flex;
   }
   .floatingActions .consultationButton,
   .floatingActions .telesalesButton,

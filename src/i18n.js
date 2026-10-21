@@ -85,6 +85,7 @@ const ar = {
   telesalesWhatsapp: "تواصل مع تيليسيلز",
   telesalesWhatsappHelp: "رسالة واتساب لخدمة العملاء ستُفتح على هذا الرقم.",
   customerServicePhone: "رقم خدمة العملاء",
+  contactOptions: "خيارات التواصل",
   contactSettings: "إعدادات التواصل",
   contactSettingsText:
     "أدِر أرقام واتساب تيليسيلز والاستشارة وخدمة العملاء والشكاوى في التذييل.",
@@ -482,6 +483,7 @@ const en = {
   telesalesWhatsappHelp:
     "WhatsApp will open a customer service message to this number.",
   customerServicePhone: "Customer service number",
+  contactOptions: "Contact options",
   contactSettings: "Contact settings",
   contactSettingsText:
     "Manage telesales and consultation WhatsApp numbers, customer service, and complaints contacts.",
